@@ -6,17 +6,38 @@
 快速实现周报生成和推送的核心功能，基于现有模板和参考代码。
 
 ### 技术方案
-- **后端**: FastAPI + Wind API
-- **数据源**: Wind API（复用 stock_query.py）+ stock_position.json
+- **后端**: FastAPI + SQLAlchemy + MySQL + Wind API
+- **数据源**: Wind API（复用 stock_query.py）+ 数据库持仓数据
 - **LLM**: Gemini API（参考 reference_llm_service.py）
 - **模板**: Jinja2 渲染 HTML（使用 templates/weekly_template.html）
 - **推送**: ServerChan（微信）
-- **数据库**: 可选使用，优先快速实现功能
+- **数据库**: MySQL 存储持仓数据、周报记录等
+- **前端**: Next.js 14 + TypeScript + Tailwind CSS（第二里程碑）
 
 ### 核心原则
-- **快速迭代**：先实现核心功能，后续再优化
+- **前后端分离**：后端提供 RESTful API，前端独立部署
+- **数据库优先**：持仓数据存储在数据库，支持多用户
 - **复用代码**：充分利用现有的 stock_query.py 和 reference_llm_service.py
-- **灵活存储**：数据可以暂时不入库，优先保证功能可用
+- **快速迭代**：先实现核心功能，后续再优化
+
+### 项目结构
+```
+smart-portfolio-manager/
+├── backend/              # 后端 FastAPI 项目
+│   ├── app/
+│   │   ├── models/      # 数据库模型
+│   │   ├── services/    # 业务逻辑
+│   │   ├── api/         # API 端点
+│   │   └── core/        # 核心配置
+│   ├── templates/       # Jinja2 模板
+│   └── alembic/         # 数据库迁移
+└── frontend/            # 前端 Next.js 项目（第二里程碑）
+    ├── src/
+    │   ├── app/         # Next.js 14 App Router
+    │   ├── components/  # React 组件
+    │   └── lib/         # 工具函数
+    └── public/          # 静态资源
+```
 
 ---
 
@@ -29,6 +50,21 @@
   - _需求: 所有需求都依赖于正确的项目搭建_
   - _数据库: host=frp3.ccszxc.site, port=14269, user=root, password=zxc123_
   - _LLM API: http://frp3.ccszxc.site:14266/v1/chat/completions, model=gemini-3-pro-preview-thinking, key=zxc123_
+  - _注意: 后续需要重组为 backend/ 和 frontend/ 目录结构_
+
+- [-] 1.5 创建数据库和初始化表结构
+
+  - [ ] 1.5.1 创建数据库模型
+    - 创建 app/models/portfolio.py - Portfolio 和 Position 模型
+    - 创建 app/models/report.py - Report 模型
+    - 创建 app/models/stock_cache.py - StockDataCache 模型（可选）
+    - _需求: 1.1, 2.7, 4.6_
+  
+  - [ ] 1.5.2 配置 Alembic 并执行迁移
+    - 创建初始迁移脚本
+    - 执行迁移创建表结构
+    - 从 stock_position.json 导入初始持仓数据
+    - _需求: 1.3, 9.2_
 
 - [ ] 2. 实现 Wind 数据采集服务
   - [ ] 2.1 封装 Wind API 客户端
@@ -49,9 +85,9 @@
   
   - [ ] 2.3 实现持仓数据服务
     - 创建 app/services/portfolio_service.py
-    - 实现从 stock_position.json 加载持仓数据
+    - 实现从数据库读取持仓数据
     - 实现获取持仓列表、计算持仓市值、盈亏等方法
-    - 支持持仓数据的增删改查（暂时基于文件，后续可迁移到数据库）
+    - 支持持仓数据的增删改查（基于数据库）
     - _需求: 1.1, 1.2_
   
   - [ ] 2.4 实现数据整合服务
@@ -127,14 +163,15 @@
     - 创建 app/api/reports.py
     - 实现 POST /api/reports/weekly 接口
     - 接口功能：
-      1. 加载持仓数据（stock_position.json）
+      1. 从数据库加载持仓数据
       2. 调用 Wind API 获取最新行情和历史数据
       3. 计算技术指标
-      4. 调用 LLM 生成分析
-      5. 渲染 HTML 模板
-      6. 推送到微信（可选参数控制）
-      7. 返回生成的 HTML 和推送状态
-    - 添加请求参数：skip_push（是否跳过推送）、date（指定日期）
+      4. 调用 LLM 生成结构化分析（JSON 格式）
+      5. 使用 Jinja2 渲染 HTML 模板
+      6. 保存周报到数据库
+      7. 推送到微信（可选参数控制）
+      8. 返回生成的 HTML 和推送状态
+    - 添加请求参数：portfolio_id（持仓组合ID）、skip_push（是否跳过推送）、date（指定日期）
     - 添加详细的日志输出
     - _需求: 4.1, 4.6, 4.7_
   
@@ -162,118 +199,153 @@
 
 ---
 
-## 🚀 第二里程碑：数据库持久化和定时任务（可选）
+## 🚀 第二里程碑：Admin 管理系统（前端）
 
-- [ ] 8. 数据库模型和持久化（可选）
-  - [ ] 8.1 创建数据库模型
-    - 定义 Portfolio 模型（持仓组合）
-    - 定义 Position 模型（个股持仓）
-    - 定义 StockDataCache 模型（行情数据缓存）
-    - 定义 Report 模型（周报记录）
-    - _需求: 1.1, 2.7, 4.6_
-  
-  - [ ] 8.2 配置数据库迁移
-    - 配置 Alembic
-    - 创建初始迁移脚本
-    - 执行迁移创建表结构
-    - _需求: 1.3, 9.2_
-  
-  - [ ] 8.3 迁移持仓数据到数据库
-    - 实现从 stock_position.json 导入到数据库
-    - 修改 PortfolioService 使用数据库
-    - 保留 JSON 文件作为备份
-    - _需求: 1.1_
-  
-  - [ ] 8.4 实现数据缓存
-    - 实现 Wind 数据缓存到数据库
-    - 避免重复调用 Wind API
-    - 设置缓存过期策略
-    - _需求: 2.1, 2.7_
+### 目标
+基于 free-nextjs-admin-dashboard-main 搭建管理后台，实现持仓管理、仪表盘、周报生成等功能。
 
-- [ ] 9. 实现定时任务系统
-  - [ ] 9.1 配置 APScheduler
+### 技术方案
+- **框架**: Next.js 14 + TypeScript + Tailwind CSS
+- **UI 参考**: free-nextjs-admin-dashboard-main
+- **状态管理**: React Hooks + Context API
+- **数据可视化**: Recharts
+- **API 调用**: Fetch API / Axios
+
+---
+
+- [ ] 8. 搭建前端项目
+  - [ ] 8.1 初始化 Next.js 项目
+    - 创建 frontend/ 目录
+    - 使用 create-next-app 初始化项目（TypeScript + Tailwind CSS）
+    - 参考 free-nextjs-admin-dashboard-main 的项目结构
+    - 配置环境变量（后端 API 地址）
+    - _需求: 前端需求_
+  
+  - [ ] 8.2 配置基础布局和路由
+    - 创建 Admin 布局组件（侧边栏 + 顶部导航）
+    - 配置路由结构（仪表盘、持仓管理、周报查看）
+    - 实现响应式设计
+    - _需求: 前端需求_
+
+- [ ] 9. 实现持仓管理页面
+  - [ ] 9.1 持仓列表页面
+    - 展示持仓列表（表格形式）
+    - 显示股票代码、名称、数量、成本价、当前价、盈亏等
+    - 支持搜索和筛选
+    - _需求: 1.1, 1.3_
+  
+  - [ ] 9.2 持仓编辑功能
+    - 添加持仓表单（股票代码、数量、成本价）
+    - 编辑持仓信息
+    - 删除持仓
+    - 连接后端 API
+    - _需求: 1.2_
+  
+  - [ ] 9.3 批量导入功能
+    - 支持 CSV/JSON 文件导入
+    - 数据验证和错误提示
+    - 导入预览
+    - _需求: 1.2_
+
+- [ ] 10. 实现仪表盘页面
+  - [ ] 10.1 资产概览卡片
+    - 总资产、总盈亏、持仓数量等关键指标
+    - 使用卡片组件展示
+    - 实时更新（可选）
+    - _需求: 6.1_
+  
+  - [ ] 10.2 持仓分布图表
+    - 饼图展示持仓占比
+    - 柱状图展示盈亏情况
+    - 使用 Recharts 实现
+    - _需求: 6.2_
+  
+  - [ ] 10.3 快捷操作
+    - "生成周报"按钮
+    - "查看最新周报"按钮
+    - 操作状态提示
+    - _需求: 4.6_
+
+- [ ] 11. 实现周报管理页面
+  - [ ] 11.1 周报列表页面
+    - 展示历史周报列表
+    - 显示生成时间、状态等信息
+    - 支持日期筛选
+    - _需求: 4.6_
+  
+  - [ ] 11.2 周报详情页面
+    - 展示 HTML 格式的周报
+    - 支持打印和导出
+    - 支持重新推送到微信
+    - _需求: 4.6_
+  
+  - [ ] 11.3 周报生成功能
+    - "生成周报"按钮
+    - 生成进度提示（流式输出）
+    - 生成完成后自动跳转到详情页
+    - _需求: 4.6, 4.7_
+
+- [ ] 12. 扩展后端 API（支持前端）
+  - [ ] 12.1 持仓管理 API
+    - GET /api/portfolios - 查询持仓组合列表
+    - GET /api/portfolios/{id}/positions - 查询持仓列表
+    - POST /api/portfolios/{id}/positions - 添加持仓
+    - PUT /api/portfolios/{id}/positions/{code} - 更新持仓
+    - DELETE /api/portfolios/{id}/positions/{code} - 删除持仓
+    - POST /api/portfolios/{id}/positions/import - 批量导入
+    - _需求: 1.1, 1.2, 1.3_
+  
+  - [ ] 12.2 仪表盘数据 API
+    - GET /api/portfolios/{id}/metrics - 获取资产指标
+    - GET /api/portfolios/{id}/distribution - 获取持仓分布
+    - _需求: 6.1, 6.2_
+  
+  - [ ] 12.3 报告查询 API
+    - GET /api/reports - 查询历史报告列表
+    - GET /api/reports/{id} - 查询报告详情
+    - GET /api/reports/latest - 查询最新报告
+    - POST /api/reports/{id}/push - 重新推送报告
+    - _需求: 4.6_
+
+- [ ] 13. 实现定时任务系统（可选）
+  - [ ] 13.1 配置 APScheduler
     - 配置 AsyncIOScheduler
     - 创建任务执行日志
     - _需求: 10.1, 10.2, 10.3_
   
-  - [ ] 9.2 实现每周自动生成任务
+  - [ ] 13.2 实现每周自动生成任务
     - 创建定时作业（周五 16:00）
     - 自动调用周报生成接口
     - 自动推送到微信
     - _需求: 4.1, 10.3, 10.6_
-  
-  - [ ] 9.3 实现每日数据采集任务（可选）
-    - 创建定时作业（交易日 15:30）
-    - 自动获取最新行情
-    - 缓存到数据库
-    - _需求: 2.1, 10.1, 10.6_
-
-- [ ] 10. 扩展 API 接口
-  - [ ] 10.1 实现持仓管理 API
-    - GET /api/portfolio - 查询持仓列表
-    - POST /api/portfolio/positions - 添加持仓
-    - PUT /api/portfolio/positions/{code} - 更新持仓
-    - DELETE /api/portfolio/positions/{code} - 删除持仓
-    - _需求: 1.1, 1.2, 1.3_
-  
-  - [ ] 10.2 实现报告查询 API
-    - GET /api/reports - 查询历史报告列表
-    - GET /api/reports/{id} - 查询报告详情
-    - GET /api/reports/latest - 查询最新报告
-    - _需求: 4.6_
 
 ---
 
-## 🎨 第三里程碑：前端界面（后续）
-
-- [ ] 11. 搭建 Next.js 前端项目
-  - 使用 TypeScript 和 Tailwind CSS 初始化 Next.js 14 项目
-  - 配置 API 路由和环境变量
-  - 设置项目目录结构
-  - _需求: 前端需求_
-
-- [ ] 12. 构建持仓管理页面
-  - 创建持仓录入表单
-  - 创建持仓列表展示
-  - 实现 CSV/JSON 导入功能
-  - 连接到后端 API
-  - _需求: 1.1, 1.2, 1.3_
-
-- [ ] 13. 构建报告查看页面
-  - 创建报告列表页面（历史周报）
-  - 创建报告详情页面（展示 HTML 周报）
-  - 添加日期筛选和搜索功能
-  - _需求: 4.6_
-
-- [ ] 14. 构建仪表板页面
-  - 创建资产概览卡片
-  - 创建持仓列表表格
-  - 创建净值曲线图表
-  - _需求: 6.1, 6.2, 6.3_
+## 🎨 第三里程碑：高级功能（后续）
 
 ---
 
 ## 📦 后续功能（按需实现）
 
-- [ ] 15. 实现用户认证系统
+- [ ] 14. 实现用户认证系统
   - 用户注册和登录
   - JWT token 管理
   - 权限控制
   - _需求: 9.1, 9.3_
 
-- [ ] 16. 实现调仓工作流
+- [ ] 15. 实现调仓工作流
   - 调仓建议展示
   - 调仓确认界面
   - 调仓历史记录
   - _需求: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 17. 实现回测功能
+- [ ] 16. 实现回测功能
   - 回测计算引擎
   - 回测结果可视化
   - 风险指标计算
   - _需求: 7.1, 7.2, 7.3_
 
-- [ ] 18. 实现用户偏好管理
+- [ ] 17. 实现用户偏好管理
   - 风险偏好配置
   - 通知设置
   - 调仓频率设置
@@ -283,25 +355,25 @@
 
 ## 🧪 可选任务
 
-- [ ]* 19. 编写测试
+- [ ]* 18. 编写测试
   - 单元测试（服务层）
   - 集成测试（API 接口）
   - 端到端测试
   - _需求: 所有需求_
 
-- [ ]* 20. 性能优化
+- [ ]* 19. 性能优化
   - 数据库查询优化
   - API 响应缓存
   - Wind API 调用优化
   - _需求: 6.5, 7.4_
 
-- [ ]* 21. 错误处理和监控
+- [ ]* 20. 错误处理和监控
   - 全局错误处理器
   - 日志中间件
   - 性能监控
   - _需求: 所有需求_
 
-- [ ]* 22. 部署和运维
+- [ ]* 21. 部署和运维
   - Docker 容器化
   - CI/CD 配置
   - 监控告警
