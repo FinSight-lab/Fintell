@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每周投资分析报告</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-main: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-main: #212529;
+            --text-light: #6c757d;
+            --border-color: #e9ecef;
+            --brand-primary: #0052FF;
+            --brand-secondary: #f0f6ff;
+
+            --up-text: #1f7a42;
+            --up-bg: #e9f9ee;
+            --down-text: #c92a2a;
+            --down-bg: #fff5f5;
+            --warn-text: #e8590c;
+            --warn-bg: #fff9e8;
+            --neutral-text: #495057;
+            --neutral-bg: #f1f3f5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-num {
+            font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-weight: 500;
+        }
+
+        .report-container {
+            max-width: 960px;
+            margin: 0 auto;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        /* Header */
+        .report-header {
+            padding: 24px 32px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-card);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+
+        .report-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        .brand-badge {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--brand-primary);
+            background: var(--brand-secondary);
+            padding: 4px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            color: var(--text-light);
+            font-size: 12px;
+            margin-bottom: 18px;
+        }
+
+        .header-meta strong {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        /* KPI cards */
+        .header-kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .kpi-card {
+            background: #f5f7fb;
+            border-radius: 8px;
+            padding: 12px 14px;
+            border: 1px solid #edf0f5;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .kpi-up {
+            color: var(--up-text);
+        }
+
+        .kpi-down {
+            color: var(--down-text);
+        }
+
+        .kpi-sub {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .report-body {
+            padding: 28px 32px 32px;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0 0 6px 0;
+        }
+
+        .section-subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+            margin: 0 0 16px 0;
+        }
+
+        .section-title-wrapper {
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 18px;
+        }
+
+        /* Summary Card */
+        .summary-card {
+            background-color: var(--brand-secondary);
+            border-left: 5px solid var(--brand-primary);
+            padding: 20px 24px;
+            border-radius: 6px;
+        }
+
+        .summary-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--brand-primary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-card-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #343a40;
+        }
+
+        .summary-card-text .highlight {
+            font-weight: 700;
+            color: var(--brand-primary);
+        }
+
+        .summary-bullets {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .summary-bullets ul {
+            margin: 6px 0 0 18px;
+            padding: 0;
+        }
+
+        .summary-bullets li {
+            margin-bottom: 4px;
+        }
+
+        /* Table Styles */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .align-center th,
+        .align-center td {
+            text-align: center;
+        }
+
+        .align-center td:first-child,
+        .align-center th:first-child,
+        .align-center .col-text-left {
+            text-align: left;
+        }
+
+        .holdings-table {
+            font-size: 13px;
+            min-width: 620px;
+        }
+
+        .holdings-table thead th {
+            font-weight: 600;
+            color: var(--text-light);
+            padding: 10px 10px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 11px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .holdings-table tbody td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .holdings-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .stock-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .stock-code {
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        .position-role {
+            font-size: 12px;
+            color: var(--text-light);
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            display: inline-block;
+        }
+
+        .role-core {
+            border-color: var(--brand-primary);
+            color: var(--brand-primary);
+        }
+
+        .role-satellite {
+            border-color: var(--warn-text);
+            color: var(--warn-text);
+        }
+
+        .role-observe {
+            border-color: var(--text-light);
+            color: var(--text-light);
+        }
+
+        /* Capsule/Tag styles */
+        .status-capsule {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 72px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .status-capsule::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .capsule-positive {
+            background-color: var(--up-bg);
+            color: var(--up-text);
+        }
+        .capsule-positive::before {
+            background-color: var(--up-text);
+        }
+
+        .capsule-negative {
+            background-color: var(--down-bg);
+            color: var(--down-text);
+        }
+        .capsule-negative::before {
+            background-color: var(--down-text);
+        }
+
+        .capsule-warning {
+            background-color: var(--warn-bg);
+            color: var(--warn-text);
+        }
+        .capsule-warning::before {
+            background-color: var(--warn-text);
+        }
+
+        .capsule-neutral {
+            background-color: var(--neutral-bg);
+            color: var(--neutral-text);
+        }
+        .capsule-neutral::before {
+            background-color: var(--neutral-text);
+        }
+
+        .text-up { color: var(--up-text); }
+        .text-down { color: var(--down-text); }
+        .text-muted { color: var(--text-light); }
+
+        /* Analysis Grid */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .stock-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 18px 18px 16px;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+        }
+
+        .stock-card-header {
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stock-card-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .stock-card-subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .stock-card-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-light);
+        }
+
+        .stock-card-list li {
+            padding-left: 16px;
+            position: relative;
+            margin-bottom: 4px;
+        }
+
+        .stock-card-list li:before {
+            content: '▪';
+            position: absolute;
+            left: 0;
+            color: var(--brand-primary);
+            font-size: 10px;
+            top: 4px;
+        }
+
+        .stock-card-list strong {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .recommendation-list li {
+            margin-bottom: 8px;
+        }
+
+        /* Action list table */
+        .action-table {
+            font-size: 13px;
+            min-width: 620px;
+        }
+
+        .action-table thead th {
+            font-weight: 600;
+            color: var(--text-light);
+            padding: 10px 10px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 11px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .action-table tbody td {
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .badge-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 500;
+            border: none;
+            background-color: var(--neutral-bg);
+            color: var(--neutral-text);
+        }
+
+        .badge-reduce {
+            background-color: rgba(232, 89, 12, 0.08);
+            color: var(--warn-text);
+        }
+
+        .badge-add {
+            background-color: rgba(31, 122, 66, 0.08);
+            color: var(--up-text);
+        }
+
+        .badge-clear {
+            background-color: rgba(201, 42, 42, 0.08);
+            color: var(--down-text);
+        }
+
+        /* Risk bar */
+        .risk-level-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .risk-bar {
+            flex: 1;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            width: 65%; /* 示例：中等偏高，可以按风险评分动态调整 */
+            background: linear-gradient(90deg, #ffd43b, #fa5252);
+        }
+
+        .risk-label {
+            font-size: 12px;
+            color: var(--warn-text);
+            font-weight: 500;
+        }
+
+        /* 下周目标仓位分布 */
+        .allocation-bar-wrap {
+            margin-top: 16px;
+        }
+
+        .allocation-bar-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+        }
+
+        .allocation-bar {
+            display: flex;
+            height: 16px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: #e9ecef;
+        }
+
+        .allocation-segment {
+            height: 100%;
+            font-size: 11px;
+            line-height: 16px;
+            text-align: center;
+            color: #fff;
+            white-space: nowrap;
+        }
+
+        .alloc-consume { background: #5c7cfa; } /* 消费 */
+        .alloc-tech    { background: #20c997; } /* 科技成长 */
+        .alloc-dividend{ background: #fab005; } /* 高股息 */
+        .alloc-cash    { background: #868e96; } /* 现金/货基 */
+
+        .allocation-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .allocation-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .allocation-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .footer-disclaimer {
+            text-align: center;
+            font-size: 11px;
+            color: #adb5bd;
+            padding: 18px;
+            background-color: var(--bg-main);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+
+            .report-header,
+            .report-body {
+                padding: 18px 16px 20px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-kpis {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-kpis {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                margin-bottom: 28px;
+            }
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+
+            .report-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .footer-disclaimer {
+                background: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <div class="header-top">
+                <h1>每周投资分析报告</h1>
+                <span class="brand-badge">AI 投资顾问</span>
+            </div>
+
+            <div class="header-meta">
+                <span><strong>报告区间：</strong><span class="font-num">2025年11月24日 - 2025年11月28日</span></span>
+                <span><strong>报告日期：</strong><span class="font-num">2025年11月28日</span></span>
+                <span><strong>客户总资产：</strong><span class="font-num">322,157.20 元</span></span>
+            </div>
+
+            <!-- 顶部 KPI 仪表盘 -->
+            <div class="header-kpis">
+                <div class="kpi-card">
+                    <div class="kpi-label">本周组合收益率</div>
+                    <div class="kpi-value kpi-down font-num">-0.42%</div>
+                    <div class="kpi-sub">沪深300：-0.35%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">今年以来收益率</div>
+                    <div class="kpi-value font-num">+3.80%</div>
+                    <div class="kpi-sub">波动可控，略跑输大盘</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">当前整体仓位</div>
+                    <div class="kpi-value font-num">87%</div>
+                    <div class="kpi-sub">偏高（建议 70%–80%）</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">本周建议调仓</div>
+                    <div class="kpi-value font-num">3 笔</div>
+                    <div class="kpi-sub">核心：去弱留强、去重叠</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="report-body">
+            <!-- 1. 本周组合总览 -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">1. 本周组合总览 (Portfolio Overview)</h2>
+                    <p class="section-subtitle">一句话总结本周组合表现与核心矛盾。</p>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-title">Professional Summary / 专业总结</div>
+                    <div class="summary-card-text">
+                        当前组合呈现典型的“防御性消费配置”，但在消费复苏乏力的背景下，进攻性不足。
+                        核心问题在于 <span class="highlight">茅台仓位过重</span> 及 <span class="highlight">ETF与个股重复配置</span>。
+                        下周策略关键词：<span class="highlight">“去弱留强、去重叠”</span>。利用可能的超跌反弹优化仓位，保护既有利润。
+                    </div>
+                    <div class="summary-bullets">
+                        <ul>
+                            <li>本周组合小幅回撤，整体波动仍主要由贵州茅台驱动。</li>
+                            <li>消费个股 + 行业 ETF 高度重叠，资金利用效率偏低。</li>
+                            <li>缺乏科技成长或高股息等风格配置，对单一行业过度暴露。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. 持仓盈亏分析 -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">2. 持仓盈亏分析 (Holdings & P/L Analysis)</h2>
+                    <p class="section-subtitle">展示当前主要持仓的盈亏情况和在组合中的权重。</p>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="holdings-table align-center">
+                        <thead>
+                            <tr>
+                                <th class="col-text-left">资产名称</th>
+                                <th class="font-num">现价</th>
+                                <th class="font-num">成本价</th>
+                                <th class="font-num">持仓市值</th>
+                                <th class="font-num">仓位占比</th>
+                                <th class="font-num">浮动盈亏</th>
+                                <th class="font-num">盈亏比例</th>
+                                <th>持仓角色</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">贵州茅台</div>
+                                    <div class="stock-code font-num">600519.SH</div>
+                                </td>
+                                <td class="font-num">1,447.30</td>
+                                <td class="font-num">1,458.96</td>
+                                <td class="font-num">145,000.00</td>
+                                <td class="font-num">45.0%</td>
+                                <td class="font-num text-down">-1,166.10</td>
+                                <td>
+                                    <span class="status-capsule capsule-negative font-num">▼ -0.80%</span>
+                                </td>
+                                <td><span class="position-role role-core">核心持仓</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">格力电器</div>
+                                    <div class="stock-code font-num">000651.SZ</div>
+                                </td>
+                                <td class="font-num">40.33</td>
+                                <td class="font-num">40.745</td>
+                                <td class="font-num">28,000.00</td>
+                                <td class="font-num">8.7%</td>
+                                <td class="font-num text-down">-871.50</td>
+                                <td>
+                                    <span class="status-capsule capsule-negative font-num">▼ -1.02%</span>
+                                </td>
+                                <td><span class="position-role role-core">核心持仓</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">珀莱雅</div>
+                                    <div class="stock-code font-num">603605.SH</div>
+                                </td>
+                                <td class="font-num">70.34</td>
+                                <td class="font-num">80.496</td>
+                                <td class="font-num">16,000.00</td>
+                                <td class="font-num">5.0%</td>
+                                <td class="font-num text-down">-2,031.20</td>
+                                <td>
+                                    <span class="status-capsule capsule-negative font-num">▼ -12.62%</span>
+                                </td>
+                                <td><span class="position-role role-satellite">卫星持仓</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">伊利股份</div>
+                                    <div class="stock-code font-num">600887.SH</div>
+                                </td>
+                                <td class="font-num">29.05</td>
+                                <td class="font-num">27.829</td>
+                                <td class="font-num">24,500.00</td>
+                                <td class="font-num">7.6%</td>
+                                <td class="font-num text-up">+732.60</td>
+                                <td>
+                                    <span class="status-capsule capsule-positive font-num">▲ +4.39%</span>
+                                </td>
+                                <td><span class="position-role role-core">核心持仓</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">东阿阿胶</div>
+                                    <div class="stock-code font-num">000423.SZ</div>
+                                </td>
+                                <td class="font-num">47.25</td>
+                                <td class="font-num">46.076</td>
+                                <td class="font-num">22,000.00</td>
+                                <td class="font-num">6.8%</td>
+                                <td class="font-num text-up">+1,056.60</td>
+                                <td>
+                                    <span class="status-capsule capsule-positive font-num">▲ +2.55%</span>
+                                </td>
+                                <td><span class="position-role role-satellite">卫星持仓</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">食品ETF</div>
+                                    <div class="stock-code font-num">516900</div>
+                                </td>
+                                <td class="font-num">0.606</td>
+                                <td class="font-num">0.604</td>
+                                <td class="font-num">8,500.00</td>
+                                <td class="font-num">2.6%</td>
+                                <td class="font-num text-up">+21.80</td>
+                                <td>
+                                    <span class="status-capsule capsule-positive font-num">▲ +0.33%</span>
+                                </td>
+                                <td><span class="position-role role-observe">配置类</span></td>
+                            </tr>
+                            <tr>
+                                <td class="col-text-left">
+                                    <div class="stock-name">消费LOF</div>
+                                    <div class="stock-code font-num">501090</div>
+                                </td>
+                                <td class="font-num">1.23</td>
+                                <td class="font-num">1.279</td>
+                                <td class="font-num">10,000.00</td>
+                                <td class="font-num">3.1%</td>
+                                <td class="font-num text-down">-480.20</td>
+                                <td>
+                                    <span class="status-capsule capsule-negative font-num">▼ -3.83%</span>
+                                </td>
+                                <td><span class="position-role role-observe">配置类</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3. 个股与 ETF 分析（含题材逻辑） -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">3. 个股与 ETF 分析 (Individual & Theme Analysis)</h2>
+                    <p class="section-subtitle">结合技术面、基本面、题材逻辑和风险点，给出符合 A 股风格的操作建议。</p>
+                </div>
+
+                <div class="analysis-grid">
+                    <!-- 贵州茅台 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">贵州茅台</div>
+                                <div class="stock-card-subtitle font-num">600519.SH · 白酒绝对龙头</div>
+                            </div>
+                            <span class="status-capsule capsule-warning">超卖反弹</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>均线空头排列，但 RSI(6) 跌至 15.6，<strong>严重超卖</strong>，短期存在技术反弹需求。</li>
+                            <li><strong>基本面：</strong>现金流稳健、品牌力极强，长期逻辑未改变，短期受消费预期和情绪压制。</li>
+                            <li><strong>题材逻辑：</strong>属于白酒板块核心资产，当前不在 A 股主线中，更多承担“防御+情绪修复”角色。</li>
+                            <li><strong>风险点：</strong>估值仍处高位，一旦消费恢复不及预期，可能面临估值中枢下移风险。</li>
+                            <li><strong>操作建议：</strong><strong>持有为主，逢高减仓</strong>。反弹至 1460–1480 区间可考虑减仓 5% 左右，降低单票集中度。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 格力电器 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">格力电器</div>
+                                <div class="stock-card-subtitle font-num">000651.SZ · 高股息蓝筹</div>
+                            </div>
+                            <span class="status-capsule capsule-neutral">横盘震荡</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>均线粘合、布林带收口，处于<strong>变盘前的蓄势阶段</strong>。</li>
+                            <li><strong>基本面：</strong>现金流充裕，分红稳定，估值具备安全边际。</li>
+                            <li><strong>题材逻辑：</strong>偏“高股息+家电复苏”方向，属于市场的防御型风格，不是当前进攻主线。</li>
+                            <li><strong>风险点：</strong>对地产链修复有一定依赖，景气度上行节奏不确定。</li>
+                            <li><strong>操作建议：</strong><strong>继续持有</strong>。不跌破 39.4 维持中线持仓，若放量跌破则考虑减仓。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 珀莱雅 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">珀莱雅</div>
+                                <div class="stock-card-subtitle font-num">603605.SH · 美妆成长股</div>
+                            </div>
+                            <span class="status-capsule capsule-negative">趋势破位</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>中长期趋势明确走弱，RSI(6) 仅 8.8，属于<strong>极度超卖</strong>，但尚未形成有效止跌形态。</li>
+                            <li><strong>基本面：</strong>品牌与渠道仍有优势，但高增长预期下修，估值消化压力较大。</li>
+                            <li><strong>题材逻辑：</strong>前期“国货美妆”热门赛道，当前处于退潮阶段，资金偏好已经切换。</li>
+                            <li><strong>风险点：</strong>若超跌后没有明显放量反弹，可能演化为“左侧越跌越便宜”的价值陷阱。</li>
+                            <li><strong>操作建议：</strong><strong>逢高减亏，择机换股</strong>。关注反弹至 MA5/MA10 一带（72–75 区间），分批减仓退出。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 伊利股份 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">伊利股份</div>
+                                <div class="stock-card-subtitle font-num">600887.SH · 必选消费龙头</div>
+                            </div>
+                            <span class="status-capsule capsule-positive">多头趋势</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>股价站上 MA20/30，MACD 金叉，短期仍处于多头通道。</li>
+                            <li><strong>基本面：</strong>需求稳定，盈利能力稳健，具备一定穿越周期能力。</li>
+                            <li><strong>题材逻辑：</strong>偏“稳健白马+养老消费”方向，属于弱 Beta 的防御性标的。</li>
+                            <li><strong>风险点：</strong>若继续放量上涨但盈利预期没有同步上修，需警惕短期透支。</li>
+                            <li><strong>操作建议：</strong><strong>止盈观察</strong>。若股价上冲 30 元上方乏力，则考虑减仓 1/3 锁定收益。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 东阿阿胶 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">东阿阿胶</div>
+                                <div class="stock-card-subtitle font-num">000423.SZ · 中药+保健赛道</div>
+                            </div>
+                            <span class="status-capsule capsule-warning">回调预警</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>短期 RSI 在低位徘徊，<strong>情绪极度悲观</strong>，存在情绪修复机会。</li>
+                            <li><strong>基本面：</strong>品牌历史悠久，但需求季节性明显，业绩易受宏观消费与医保政策影响。</li>
+                            <li><strong>题材逻辑：</strong>具备“中药+大健康”属性，属于市场轮动时会被资金阶段性关注的方向。</li>
+                            <li><strong>风险点：</strong>若跌破前期重要平台位且成交放量，可能进入中期调整周期。</li>
+                            <li><strong>操作建议：</strong><strong>密切跟踪、分批止盈</strong>。若不能重回 48 元上方，建议逐步减仓落袋为安。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 消费类 ETF -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <div>
+                                <div class="stock-card-title">消费类 ETF</div>
+                                <div class="stock-card-subtitle font-num">516900 & 501090 · 消费板块指数</div>
+                            </div>
+                            <span class="status-capsule capsule-neutral">重复配置</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>技术面：</strong>整体跟随消费指数波动，目前处于震荡偏弱格局。</li>
+                            <li><strong>基本面：</strong>成分股与既有持仓（茅台、伊利等）高度重叠。</li>
+                            <li><strong>题材逻辑：</strong>代表“消费大盘”方向，但当前不是市场核心主线，更适合作为分散工具。</li>
+                            <li><strong>风险点：</strong>与个股重叠导致资金利用效率低，实质上放大了单一赛道的波动。</li>
+                            <li><strong>操作建议：</strong><strong>逐步退出</strong>。在小幅反弹阶段分批卖出，将资金腾挪到科技成长或高股息板块。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 本周建议操作清单 + 下周目标仓位分布 -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">4. 本周建议操作清单 & 下周目标仓位 (Action Plan)</h2>
+                    <p class="section-subtitle">给出具体可执行的价格区间与目标仓位，并规划下周组合结构。</p>
+                </div>
+
+                <!-- 4.1 操作清单 -->
+                <div class="table-wrapper">
+                    <table class="action-table align-center">
+                        <thead>
+                            <tr>
+                                <th>代码</th>
+                                <th class="col-text-left">名称</th>
+                                <th>建议动作</th>
+                                <th>执行价区间</th>
+                                <th class="font-num">当前仓位</th>
+                                <th class="font-num">目标仓位</th>
+                                <th>分批计划</th>
+                                <th>逻辑摘要</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-num">600519.SH</td>
+                                <td class="col-text-left">贵州茅台</td>
+                                <td><span class="badge-action badge-reduce">逢高减仓</span></td>
+                                <td class="font-num">1460 – 1480 元</td>
+                                <td class="font-num">45%</td>
+                                <td class="font-num">40%</td>
+                                <td>触及区间上沿分两次各减 2.5%</td>
+                                <td>单票仓位过重，利用超跌反弹优化集中度。</td>
+                            </tr>
+                            <tr>
+                                <td class="font-num">603605.SH</td>
+                                <td class="col-text-left">珀莱雅</td>
+                                <td><span class="badge-action badge-clear">反弹减仓</span></td>
+                                <td class="font-num">72 – 75 元</td>
+                                <td class="font-num">5%</td>
+                                <td class="font-num">0%</td>
+                                <td>反弹到 MA5/MA10 区域分三次清仓</td>
+                                <td>趋势走弱，题材退潮，资金偏好已切换。</td>
+                            </tr>
+                            <tr>
+                                <td class="font-num">516900 / 501090</td>
+                                <td class="col-text-left">食品ETF / 消费LOF</td>
+                                <td><span class="badge-action badge-clear">逐步清仓</span></td>
+                                <td class="font-num">+1% 涨幅内择机</td>
+                                <td class="font-num">5.7%</td>
+                                <td class="font-num">0%</td>
+                                <td>按日成交量 10% 以内分 2–3 天卖出</td>
+                                <td>与个股高度重叠，释放仓位给其他赛道。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 4.2 下周目标仓位分布 -->
+                <div class="allocation-bar-wrap">
+                    <div class="allocation-bar-label">下周目标仓位结构（按板块/风格拆分）：</div>
+                    <div class="allocation-bar">
+                        <div class="allocation-segment alloc-consume" style="width:55%;">消费 55%</div>
+                        <div class="allocation-segment alloc-tech" style="width:20%;">科技成长 20%</div>
+                        <div class="allocation-segment alloc-dividend" style="width:15%;">高股息 15%</div>
+                        <div class="allocation-segment alloc-cash" style="width:10%;">现金 10%</div>
+                    </div>
+                    <div class="allocation-legend">
+                        <div class="allocation-legend-item">
+                            <span class="allocation-legend-dot" style="background:#5c7cfa;"></span> 消费相关
+                        </div>
+                        <div class="allocation-legend-item">
+                            <span class="allocation-legend-dot" style="background:#20c997;"></span> 科技成长
+                        </div>
+                        <div class="allocation-legend-item">
+                            <span class="allocation-legend-dot" style="background:#fab005;"></span> 高股息/价值
+                        </div>
+                        <div class="allocation-legend-item">
+                            <span class="allocation-legend-dot" style="background:#868e96;"></span> 现金/货基
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. 组合风险与优化建议 -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">5. 组合风险与优化建议 (Risk & Optimization)</h2>
+                    <p class="section-subtitle">宏观视角评估组合风险水平，并给出配置结构优化建议。</p>
+                </div>
+
+                <!-- 风险等级条 -->
+                <div class="risk-level-bar">
+                    <span>组合风险等级：</span>
+                    <div class="risk-bar">
+                        <div class="risk-bar-fill"></div>
+                    </div>
+                    <span class="risk-label">中等偏高</span>
+                </div>
+
+                <div class="analysis-grid">
+                    <!-- 当前风险 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <span class="stock-card-title">当前风险拆解</span>
+                        </div>
+                        <ul class="stock-card-list">
+                            <li><strong>行业集中度：</strong><span class="text-down">近 100% 集中在泛消费领域</span>，缺乏科技、周期等对冲板块。</li>
+                            <li><strong>个股集中度：</strong>贵州茅台单只仓位约 <span class="text-down">45%</span>，组合波动过度依赖单一标的。</li>
+                            <li><strong>风格单一：</strong>防御性消费占比高，进攻性与弹性不足，难以把握结构性行情。</li>
+                            <li><strong>ETF 重叠：</strong>持有的消费 ETF 与个股高度重叠，<span class="text-down">未起到有效分散风险的作用</span>。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 优化建议 -->
+                    <div class="stock-card">
+                        <div class="stock-card-header">
+                            <span class="stock-card-title">结构优化建议</span>
+                        </div>
+                        <ul class="stock-card-list recommendation-list">
+                            <li><strong>去重叠：</strong>建议逐步减仓 <strong class="font-num">516900</strong> 和 <strong class="font-num">501090</strong>，降低与茅台、伊利的重复暴露。</li>
+                            <li><strong>止损弱势：</strong>对 <strong>珀莱雅</strong> 等趋势破位标的，建议利用反弹窗口减仓或退出，将资金腾挪至更强个股。</li>
+                            <li><strong>增加多样性：</strong>适度配置 <strong>科技成长</strong>、<strong>高股息红利</strong> 等板块，引入与消费相关性较低的资产。</li>
+                            <li><strong>控制整体仓位：</strong>将整体仓位从当前约 87% 降至 70%–80%，为未来不确定性留出机动空间。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. 板块 & 题材视角 -->
+            <section class="section">
+                <div class="section-title-wrapper">
+                    <h2 class="section-title">6. 板块 & 题材视角 (Sector & Theme View)</h2>
+                    <p class="section-subtitle">站在 A 股“主线—情绪—轮动”的框架下，定位当前组合。</p>
+                </div>
+
+                <div class="summary-card">
+                    <div class="summary-card-text">
+                        从当前市场结构看，消费并非绝对主线，更偏向于“防御+修复”方向。增量资金在
+                        <span class="highlight">科技成长、高股息红利</span> 方向上更为活跃。
+                        组合目前重仓消费，<strong>与市场主线存在一定错位</strong>，需要通过适度“换赛道”和“引入高股息资产”来平衡。
+                    </div>
+                    <div class="summary-bullets">
+                        <ul>
+                            <li><strong>主线判断：</strong>科技成长（如半导体、算力）、高股息红利仍是市场关注焦点。</li>
+                            <li><strong>消费位置：</strong>消费处于“深跌后震荡修复”阶段，适合作为防御，但不宜 All in。</li>
+                            <li><strong>组合定位：</strong>当前组合更接近“进可攻能力有限、退可守尚可”的状态。</li>
+                            <li><strong>调仓方向：</strong>在不伤害长期底仓的前提下，释放部分消费仓位，引入科技成长 & 高股息 ETF / 龙头个股。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="footer-disclaimer">
+        本报告由 AI 生成，仅供参考，不构成任何投资建议。市场有风险，投资需谨慎。
+    </div>
+</body>
+</html>
