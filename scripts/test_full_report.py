@@ -4,17 +4,25 @@
 
 import sys
 import os
+
+# 强制刷新输出
+sys.stdout.reconfigure(line_buffering=True)
+print("脚本开始执行...", flush=True)
+
 sys.path.insert(0, os.path.abspath('.'))
 
 import json
 import logging
-from dotenv import load_dotenv
 
+print("正在加载 dotenv...", flush=True)
+from dotenv import load_dotenv
 load_dotenv()
+print("dotenv 加载完成", flush=True)
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
 
@@ -39,14 +47,18 @@ def test_full_report():
     
     from app.services.llm_service import LLMService
     
-    api_url = os.getenv('GEMINI_API_URL', 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions')
-    api_key = os.getenv('GEMINI_API_KEY')
+    api_url = os.getenv('LLM_API_URL', 'http://frp3.ccszxc.site:14266/v1/chat/completions')
+    api_key = os.getenv('LLM_API_KEY')
+    model = os.getenv('LLM_MODEL', 'gemini-3-pro-preview-thinking')
     
     if not api_key:
-        logger.error("✗ 未设置 GEMINI_API_KEY 环境变量")
+        logger.error("✗ 未设置 LLM_API_KEY 环境变量")
         return False
     
-    llm_service = LLMService(api_url=api_url, api_key=api_key)
+    logger.info(f"  API URL: {api_url}")
+    logger.info(f"  Model: {model}")
+    
+    llm_service = LLMService(api_url=api_url, api_key=api_key, model=model)
     
     # 添加基准数据
     test_data['benchmark_name'] = '沪深300'
