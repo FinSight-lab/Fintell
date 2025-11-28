@@ -1,0 +1,200 @@
+"""Data Integration Service - 数据整合服务"""
+
+from typing import Dict, List
+from datetime import datetime, timedelta
+import logging
+from sqlalchemy.orm import Session
+
+from app.services.wind_service import WindService
+from app.services.portfolio_service import PortfolioService
+
+logger = logging.getLogger(__name__)
+
+
+class DataService:
+    """数据整合服务类 - 整合持仓、行情、技术指标等所有数据"""
+    
+    def __init__(self, db: Session):
+        """
+        初始化数据服务
+        
+        Args:
+            db: 数据库会话
+        """
+        self.db = db
+        self.wind_service = WindService()
+        self.portfolio_service = PortfolioService(db)
+    
+    def get_weekly_report_data(self, portfolio_id: int) -> Dict:
+        """
+        获取周报所需的完整数据
+        
+        Args:
+            portfolio_id: 持仓组合ID
+            
+        Returns:
+            Dict: 包含所有周报所需数据的字典
+        """
+        logger.info("=" * 80)
+        logger.info(f"开始获取周报数据 (Portfolio ID: {portfolio_id})")
+        logger.info("=" * 80)
+        
+        try:
+            # 1. 获取持仓组合信息
+            portfolio = self.portfolio_service.get_portfolio(portfolio_id)
+            if not portfolio:
+                logger.error(f"持仓组合不存在: ID={portfolio_id}")
+                return {}
+            
+            # 2. 获取持仓列表
+            positions = self.portfolio_service.get_positions(portfolio_id)
+            if not positions:
+                logger.warning("持仓列表为空")
+                return {}
+            
+            logger.info(f"\n📊 持仓组合: {portfolio.name}")
+            logger.info(f"   总资产: ¥{portfolio.total_assets:,.2f}")
+            logger.info(f"   持仓数量: {len(positions)} 只股票\n")
+            
+            # 3. 获取每只股票的完整数据
+            holdings_data = []
+            
+            for i, position in enumerate(positions, 1):
+                logger.info(f"[{i}/{len(positions)}] 处理: {position.stock_code}")
+                
+                try:
+                    # 获取 Wind 数据
+                    wind_data = self.wind_service.get_stock_complete_data(position.stock_code)
+                    
+                    if not wind_data or wind_data.get("data") is None:
+                        logger.warning(f"  ⚠️  跳过 {position.stock_code}（无数据）")
+                        continue
+                    
+                    # 提取数据
+                    df = wind_data["data"]
+                    
+                    # 获取技术指标（Wind API 已经计算好了）
+                    indicators = wind_data.get("indicators", {})
+                    
+                    # 计算盈亏
+                    current_price = wind_data["latest_price"]
+                    position_metrics = self.portfolio_service.calculate_position_metrics(
+                        position, 
+                        current_price
+                    )
+                    
+                    # 整合数据
+                    holding_data = {
+                        # 基本信息
+                        "stock_code": position.stock_code,
+                        "stock_name": wind_data["name"] or position.stock_name,
+                        
+                        # 持仓信息
+                        "quantity": position.quantity,
+                        "cost_price": float(position.cost_price),
+                        
+                        # 当前行情
+                        "current_price": current_price,
+                        "volume": wind_data["volume"],
+                        "pe_ttm": wind_data["pe_ttm"],
+                        "turnover": wind_data["turnover"],
+                        
+                        # 盈亏情况
+                        "market_value": position_metrics["market_value"],
+                        "cost_value": position_metrics["cost_value"],
+                        "profit_loss": position_metrics["profit_loss"],
+                        "profit_loss_pct": position_metrics["profit_loss_pct"],
+                        
+                        # 技术指标
+                        "indicators": indicators,
+                        
+                        # 原始数据（用于进一步分析）
+                        "historical_data": df.to_dict('records')  # 转为字典列表
+                    }
+                    
+                    holdings_data.append(holding_data)
+                    
+                    logger.info(f"  ✓ {position.stock_code}: ¥{current_price:.2f}, "
+                              f"盈亏 {position_metrics['profit_loss']:+,.2f} "
+                              f"({position_metrics['profit_loss_pct']:+.2f}%)")
+                
+                except Exception as e:
+                    logger.error(f"  ✗ 处理 {position.stock_code} 失败: {e}")
+                    continue
+            
+            if not holdings_data:
+                logger.error("没有成功获取任何股票数据")
+                return {}
+            
+            # 4. 计算组合级别指标
+            portfolio_metrics = self.portfolio_service.calculate_portfolio_metrics(
+                portfolio_id, 
+                holdings_data
+            )
+            
+            # 5. 生成报告元数据
+            report_date = datetime.now().date()
+            period_start = report_date - timedelta(days=7)  # 最近一周
+            
+            # 6. 组装完整数据
+            complete_data = {
+                # 报告元数据
+                "report_date": report_date.strftime("%Y-%m-%d"),
+                "period_start": period_start.strftime("%Y-%m-%d"),
+                "period_end": report_date.strftime("%Y-%m-%d"),
+                "period": f"{period_start.strftime('%Y年%m月%d日')} - {report_date.strftime('%Y年%m月%d日')}",
+                "generated_at": datetime.now().isoformat(),
+                
+                # 组合信息
+                "portfolio": {
+                    "id": portfolio.id,
+                    "name": portfolio.name,
+                    "total_assets": portfolio_metrics["total_assets"],
+                    "description": portfolio.description
+                },
+                
+                # 组合指标
+                "metrics": {
+                    "total_market_value": portfolio_metrics["total_market_value"],
+                    "total_cost_value": portfolio_metrics["total_cost_value"],
+                    "total_profit_loss": portfolio_metrics["total_profit_loss"],
+                    "total_return_pct": portfolio_metrics["total_return_pct"],
+                    "position_ratio": portfolio_metrics["position_ratio"],
+                    "cash": portfolio_metrics["cash"],
+                    "cash_ratio": portfolio_metrics["cash_ratio"],
+                    "position_count": portfolio_metrics["position_count"]
+                },
+                
+                # KPI 指标（用于周报顶部展示）
+                "kpis": {
+                    "weekly_return": 0,  # TODO: 需要历史数据计算
+                    "ytd_return": portfolio_metrics["total_return_pct"],  # 暂用总收益率
+                    "position_ratio": portfolio_metrics["position_ratio"],
+                    "action_count": 0  # TODO: 由 LLM 生成
+                },
+                
+                # 持仓明细
+                "holdings": holdings_data
+            }
+            
+            logger.info("\n" + "=" * 80)
+            logger.info("✓ 周报数据获取完成")
+            logger.info("=" * 80)
+            logger.info(f"持仓数量: {len(holdings_data)}")
+            logger.info(f"总市值: ¥{portfolio_metrics['total_market_value']:,.2f}")
+            logger.info(f"总盈亏: ¥{portfolio_metrics['total_profit_loss']:+,.2f} ({portfolio_metrics['total_return_pct']:+.2f}%)")
+            logger.info(f"仓位占比: {portfolio_metrics['position_ratio']:.1f}%")
+            logger.info("=" * 80 + "\n")
+            
+            return complete_data
+        
+        except Exception as e:
+            logger.error(f"获取周报数据失败: {e}", exc_info=True)
+            return {}
+    
+    def close(self):
+        """关闭服务"""
+        try:
+            self.wind_service.close()
+        except Exception as e:
+            logger.error(f"关闭服务失败: {e}")

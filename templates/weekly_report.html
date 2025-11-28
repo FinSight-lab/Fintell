@@ -620,31 +620,18 @@
             <div class="header-meta">
                 <span><strong>报告区间：</strong><span class="font-num">{{ period }}</span></span>
                 <span><strong>报告日期：</strong><span class="font-num">{{ report_date }}</span></span>
-                <span><strong>客户总资产：</strong><span class="font-num">{{ "%.2f"|format(metrics.total_market_value + metrics.cash)|replace(',', ',') }} 元</span></span>
+                <span><strong>客户总资产：</strong><span class="font-num">{{ "{:,.2f}".format(metrics.total_market_value + metrics.cash) }} 元</span></span>
             </div>
 
-            <!-- 顶部 KPI 仪表盘 -->
+            <!-- 顶部 KPI 仪表盘 - 所有内容来自 LLM -->
             <div class="header-kpis">
+                {% for kpi in analysis.kpis.cards %}
                 <div class="kpi-card">
-                    <div class="kpi-label">本周组合收益率</div>
-                    <div class="kpi-value {% if analysis.kpis.weekly_return >= 0 %}kpi-up{% else %}kpi-down{% endif %} font-num">{{ "%+.2f"|format(analysis.kpis.weekly_return) }}%</div>
-                    <div class="kpi-sub">沪深300：{{ "%+.2f"|format(analysis.kpis.get('benchmark_return', 0)) }}%</div>
+                    <div class="kpi-label">{{ kpi.label }}</div>
+                    <div class="kpi-value {{ kpi.value_class }} font-num">{{ kpi.value }}</div>
+                    <div class="kpi-sub">{{ kpi.sub }}</div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">今年以来收益率</div>
-                    <div class="kpi-value font-num">{{ "%+.2f"|format(analysis.kpis.ytd_return) }}%</div>
-                    <div class="kpi-sub">{{ analysis.kpis.get('ytd_comment', '波动可控') }}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">当前整体仓位</div>
-                    <div class="kpi-value font-num">{{ "%.0f"|format(analysis.kpis.position_ratio) }}%</div>
-                    <div class="kpi-sub">{{ analysis.kpis.get('position_comment', '偏高（建议 70%–80%）') }}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">本周建议调仓</div>
-                    <div class="kpi-value font-num">{{ analysis.kpis.action_count }} 笔</div>
-                    <div class="kpi-sub">{{ analysis.kpis.get('action_summary', '核心：去弱留强') }}</div>
-                </div>
+                {% endfor %}
             </div>
         </div>
 

@@ -52,53 +52,108 @@ smart-portfolio-manager/
   - _LLM API: http://frp3.ccszxc.site:14266/v1/chat/completions, model=gemini-3-pro-preview-thinking, key=zxc123_
   - _注意: 后续需要重组为 backend/ 和 frontend/ 目录结构_
 
-- [-] 1.5 创建数据库和初始化表结构
+- [ ] 1.5 创建数据库和初始化表结构
 
-  - [ ] 1.5.1 创建数据库模型
+
+
+  - [x] 1.5.1 创建数据库模型
+
+
     - 创建 app/models/portfolio.py - Portfolio 和 Position 模型
     - 创建 app/models/report.py - Report 模型
     - 创建 app/models/stock_cache.py - StockDataCache 模型（可选）
     - _需求: 1.1, 2.7, 4.6_
   
-  - [ ] 1.5.2 配置 Alembic 并执行迁移
+  - [x] 1.5.2 配置 Alembic 并执行迁移
+
+
     - 创建初始迁移脚本
     - 执行迁移创建表结构
     - 从 stock_position.json 导入初始持仓数据
     - _需求: 1.3, 9.2_
 
-- [ ] 2. 实现 Wind 数据采集服务
-  - [ ] 2.1 封装 Wind API 客户端
+- [ ] 2. 实现 Wind 数据采集和技术指标计算
+
+
+
+  - [x] 2.1 封装 Wind API 客户端
+
+
+    - 创建 app/services/wind_service.py
     - 复用 stock_query.py 中的 Wind API 调用逻辑
-    - 封装为 app/services/wind_service.py 中的 WindService 类
-    - 实现获取股票基本信息、最新行情、历史数据的方法
-    - 添加错误处理和日志记录
+    - 实现 WindService 类，包含以下方法：
+      - `get_stock_info(stock_code)`: 获取股票基本信息（名称）
+      - `get_stock_data(stock_code, days=90)`: 获取历史行情数据
+      - `get_latest_price(stock_code)`: 获取最新价格
+      - `wind_to_df(res)`: Wind 响应转 DataFrame
+    - 添加错误处理和重试逻辑
+    - 添加日志记录
     - _需求: 2.1, 2.6_
-    - _参考: stock_query.py 中的 wind_to_df() 和相关函数_
+    - _参考: stock_query.py 的 wind_to_df() 和 get_stock_recent_info()_
   
-  - [ ] 2.2 实现技术指标计算服务
+  - [x] 2.2 实现技术指标计算服务
+
+
     - 创建 app/services/indicators.py
-    - 迁移 calc_ma、calc_rsi、calc_macd、calc_boll 函数
-    - 保持与 stock_query.py 完全一致的计算逻辑
-    - 添加输入验证
+    - 完全复制 stock_query.py 中的技术指标函数：
+      - `calc_ma(series)`: 计算 MA5, MA10, MA20, MA30, MA250
+      - `calc_rsi(close)`: 计算 RSI6, RSI12, RSI24
+      - `calc_macd(close)`: 计算 MACD_DIF, MACD_DEA, MACD
+      - `calc_boll(close)`: 计算 BOLL_mid, BOLL_upper, BOLL_lower
+    - 保持计算逻辑完全一致
+    - 添加输入验证和异常处理
     - _需求: 2.2, 2.3, 2.4, 2.5_
-    - _参考: stock_query.py 中的技术指标计算函数_
+    - _参考: stock_query.py 的技术指标函数_
   
-  - [ ] 2.3 实现持仓数据服务
+  - [x] 2.3 实现持仓数据服务
+
+
     - 创建 app/services/portfolio_service.py
-    - 实现从数据库读取持仓数据
-    - 实现获取持仓列表、计算持仓市值、盈亏等方法
+    - 实现 PortfolioService 类，包含以下方法：
+      - `get_portfolio(portfolio_id)`: 获取持仓组合
+      - `get_positions(portfolio_id)`: 获取持仓列表
+      - `calculate_position_metrics(position, current_price)`: 计算单个持仓的市值、盈亏
+      - `calculate_portfolio_metrics(portfolio_id, positions_data)`: 计算组合级别指标
     - 支持持仓数据的增删改查（基于数据库）
     - _需求: 1.1, 1.2_
   
-  - [ ] 2.4 实现数据整合服务
-    - 创建 app/services/data_service.py
-    - 整合持仓数据 + Wind 行情数据 + 技术指标
-    - 生成周报所需的完整数据结构
-    - 计算组合级别的指标（总资产、总盈亏、仓位占比等）
-    - _需求: 1.1, 2.1-2.7_
+  - [x] 2.4 实现数据整合服务
 
-- [ ] 3. 实现 LLM 分析服务
-  - [ ] 3.1 创建 LLM 客户端
+
+    - 创建 app/services/data_service.py
+    - 实现 DataService 类，整合所有数据：
+      - 从数据库加载持仓数据
+      - 调用 Wind API 获取每只股票的行情数据
+      - 计算每只股票的技术指标
+      - 计算每只股票的盈亏情况
+      - 计算组合级别的汇总指标
+    - 生成周报所需的完整数据结构（JSON 格式）
+    - 数据结构包含：
+      - 基本信息：报告日期、统计周期、总资产
+      - KPI 指标：周收益率、年初至今收益率、仓位占比、建议调仓数
+      - 持仓明细：每只股票的代码、名称、价格、成本、市值、盈亏、技术指标
+      - 组合汇总：总市值、总盈亏、持仓分布等
+    - _需求: 1.1, 2.1-2.7_
+  
+  - [x] 2.5 测试 Wind 接口和数据整合
+
+
+
+    - 创建测试脚本 scripts/test_wind_data.py
+    - 测试 Wind API 连接
+    - 测试获取单只股票的完整数据
+    - 测试获取组合所有股票的数据
+    - 验证技术指标计算正确性
+    - 验证数据结构完整性
+    - _需求: 2.1-2.7_
+
+- [x] 3. 实现 LLM 分析服务
+
+
+  - [x] 3.1 创建 LLM 客户端
+
+
+
     - 创建 app/services/llm_service.py
     - 参考 reference_llm_service.py 实现 LLMService 类
     - 连接到 Gemini API (http://frp3.ccszxc.site:14266/v1/chat/completions)
@@ -107,7 +162,8 @@ smart-portfolio-manager/
     - _需求: 4.7_
     - _参考: reference_llm_service.py 的完整实现_
   
-  - [ ] 3.2 设计周报分析提示词
+  - [x] 3.2 设计周报分析提示词
+
     - 参考 reference_llm_service.py 中的 system_prompt 和 user_prompt
     - 调整为股票周报场景（从大宗商品改为股票）
     - 定义 JSON 输出结构，包含：
@@ -120,7 +176,8 @@ smart-portfolio-manager/
     - _需求: 4.1, 4.2, 4.3, 4.4, 4.5_
     - _参考: reference_llm_service.py 的 prompt 设计思路_
   
-  - [ ] 3.3 实现周报分析生成
+  - [x] 3.3 实现周报分析生成
+
     - 在 LLMService 中实现 generate_weekly_analysis() 方法
     - 接收整合后的数据（持仓、行情、技术指标）
     - 调用 LLM API 生成结构化分析
@@ -128,8 +185,12 @@ smart-portfolio-manager/
     - 添加流式输出的进度回调（可选）
     - _需求: 4.1-4.8_
 
-- [ ] 4. 实现 Jinja2 模板渲染服务
-  - [ ] 4.1 复制并调整 HTML 模板
+- [x] 4. 实现 Jinja2 模板渲染服务
+
+
+  - [x] 4.1 复制并调整 HTML 模板
+
+
     - 将 templates/weekly_template.html 复制为工作模板
     - 识别所有需要动态填充的数据点
     - 添加 Jinja2 变量标记（{{ variable }}）
@@ -138,7 +199,10 @@ smart-portfolio-manager/
     - _需求: 4.6_
     - _参考: templates/weekly_template.html 的完整结构_
   
-  - [ ] 4.2 实现模板渲染服务
+  - [x] 4.2 实现模板渲染服务
+
+
+
     - 创建 app/services/template_service.py
     - 实现 TemplateService 类
     - 实现 render_weekly_report(data) 方法
@@ -148,7 +212,12 @@ smart-portfolio-manager/
     - _需求: 4.6_
 
 - [ ] 5. 实现推送服务
+
+
   - [ ] 5.1 实现 ServerChan 推送
+
+
+
     - 创建 app/services/notification_service.py
     - 参考 vx_notice_push.py 实现 ServerChan 推送
     - 实现 send_serverchan(title, content) 方法
@@ -158,12 +227,17 @@ smart-portfolio-manager/
     - _需求: 3.6, 8.1_
     - _参考: vx_notice_push.py 的 push_wechat 函数_
 
-- [ ] 6. 创建周报生成 API 接口
-  - [ ] 6.1 实现周报生成接口
+- [x] 6. 创建周报生成 API 接口
+
+
+
+  - [x] 6.1 实现周报生成接口
+
+
     - 创建 app/api/reports.py
     - 实现 POST /api/reports/weekly 接口
     - 接口功能：
-      1. 从数据库加载持仓数据
+      1. 从数据库加载持仓数据 
       2. 调用 Wind API 获取最新行情和历史数据
       3. 计算技术指标
       4. 调用 LLM 生成结构化分析（JSON 格式）
@@ -175,7 +249,9 @@ smart-portfolio-manager/
     - 添加详细的日志输出
     - _需求: 4.1, 4.6, 4.7_
   
-  - [ ] 6.2 注册路由并测试
+  - [x] 6.2 注册路由并测试
+
+
     - 在 app/main.py 中注册 reports 路由
     - 使用 FastAPI 自动文档测试接口
     - 验证完整流程可用

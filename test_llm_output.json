@@ -1,0 +1,158 @@
+{
+  "core_viewpoint": "本周组合受消费板块整体疲软拖累，录得微幅亏损。核心持仓<span class='highlight'>格力电器与贵州茅台</span>陷入缩量横盘，缺乏向上动能；个股分化加剧，伊利股份逆势走强，而珀莱雅破位下行。当前组合面临<span class='highlight'>行业单一、持仓过度集中</span>的双重风险。策略上建议利用超跌反弹机会调仓，降低消费权重，为后续配置科技或红利资产腾挪空间。",
+  "kpis": {
+    "weekly_return": -0.7,
+    "ytd_return": -0.67,
+    "position_ratio": 94.8,
+    "action_count": 3
+  },
+  "holdings_analysis": {
+    "summary": "组合呈现典型的'防御性滞涨'特征。两大重仓股（格力、茅台）合计占比超72%，导致组合波动率低但弹性不足。伊利股份贡献了主要正收益，证明乳业龙头韧性；珀莱雅深跌拖累业绩，且技术面完全破位。ETF与LOF基金表现平庸，未能起到分散风险作用。",
+    "highlights": [
+      "极度集中：前两大持仓占比过高，单票风险显著",
+      "分化严重：伊利多头排列 vs 珀莱雅空头破位",
+      "超卖信号：东阿阿胶RSI降至22，存在短线修复需求"
+    ]
+  },
+  "stock_analysis": [
+    {
+      "stock_code": "000651.SZ",
+      "stock_name": "格力电器",
+      "status": "横盘震荡",
+      "status_class": "neutral",
+      "technical": "均线系统（MA5-30）高度粘合于40.3元附近，RSI指标50左右，表明多空平衡，波动率极低，处于方向选择前夜。",
+      "fundamental": "高股息低估值逻辑未变，但空调行业进入淡季，短期缺乏业绩催化剂，资金关注度下降。",
+      "theme": "家电以旧换新政策边际效应递减，市场风格偏向高弹性科技，高红利板块暂时休整。",
+      "risk": "若跌破40元整数关口，可能引发技术性抛盘。",
+      "suggestion": "仓位过重（38%），建议**逢高减持**以降低单一持仓风险。"
+    },
+    {
+      "stock_code": "600519.SH",
+      "stock_name": "贵州茅台",
+      "status": "弱势整理",
+      "status_class": "neutral",
+      "technical": "股价运行于MA250年线下方，短期受制于MA10（1459元）压制，RSI处于43弱势区，量能不足。",
+      "fundamental": "高端白酒批价波动引发市场担忧，宏观消费数据复苏缓慢，估值处于合理区间下沿。",
+      "theme": "白酒板块整体情绪低迷，机构资金处于存量博弈状态，难有板块性大行情。",
+      "risk": "有效跌破1450元支撑位可能打开下行空间。",
+      "suggestion": "**区间操作**，利用反弹机会降低仓位。"
+    },
+    {
+      "stock_code": "603605.SH",
+      "stock_name": "珀莱雅",
+      "status": "趋势破位",
+      "status_class": "negative",
+      "technical": "均线呈典型空头排列，股价沿MA5下行，RSI跌至32接近超卖，虽有反弹需求但趋势已坏。",
+      "fundamental": "美妆行业竞争加剧，市场对双十一后销售数据存疑，高增长预期面临修正。",
+      "theme": "可选消费中表现最弱的细分领域，资金流出明显。",
+      "risk": "下方缺乏明显技术支撑，可能出现阴跌不止。",
+      "suggestion": "**止损减仓**，反弹即是卖出机会。"
+    },
+    {
+      "stock_code": "600887.SH",
+      "stock_name": "伊利股份",
+      "status": "多头趋势",
+      "status_class": "positive",
+      "technical": "股价站上所有短期均线，MA5/10金叉向上，RSI接近67强势区，走势独立于大盘。",
+      "fundamental": "原奶成本下降利好利润释放，液态奶需求刚性，防御属性受资金青睐。",
+      "theme": "避险资金抱团品种，属于当前市场中的'安全岛'。",
+      "risk": "接近30元整数压力位，RSI过高可能引发短线回调。",
+      "suggestion": "**继续持有**，若冲高回落可部分止盈。"
+    },
+    {
+      "stock_code": "000423.SZ",
+      "stock_name": "东阿阿胶",
+      "status": "超卖反弹",
+      "status_class": "warning",
+      "technical": "短期急跌跌破MA30，但RSI6数值仅22.9，进入严重超卖区间，乖离率过大，技术上随时可能反抽。",
+      "fundamental": "中药滋补逻辑稳健，公司基本面无恶化，此次下跌更多是前期获利盘的集中兑现。",
+      "theme": "中药板块短期调整幅度较深，具备轮动反弹潜力。",
+      "risk": "若反弹无法站回MA20（48.1元），则调整时间延长。",
+      "suggestion": "**持股待涨**，激进者可小幅补仓博反弹。"
+    },
+    {
+      "stock_code": "516900.SH",
+      "stock_name": "食品饮料ETF基金",
+      "status": "底部震荡",
+      "status_class": "neutral",
+      "technical": "围绕0.61元窄幅波动，均线纠缠，无明显方向。",
+      "fundamental": "跟随消费板块整体走势。",
+      "theme": "缺乏板块效应。",
+      "risk": "流动性一般。",
+      "suggestion": "与个股持仓重叠度高，建议**清仓**换股。"
+    },
+    {
+      "stock_code": "501090.SH",
+      "stock_name": "消费龙头LOF",
+      "status": "弱势回调",
+      "status_class": "negative",
+      "technical": "跌破MA20/30支撑，RSI偏弱，短期形态走坏。",
+      "fundamental": "持仓多为消费白马，受大环境压制。",
+      "theme": "消费复苏预期证伪前的阵痛期。",
+      "risk": "净值回撤风险。",
+      "suggestion": "建议**清仓**，优化组合结构。"
+    }
+  ],
+  "action_plan": [
+    {
+      "stock_code": "603605.SH",
+      "stock_name": "珀莱雅",
+      "action": "反弹减仓",
+      "action_class": "reduce",
+      "price_range": "71.50-72.50元",
+      "current_position": "3.3%",
+      "target_position": "0%",
+      "plan": "触及MA10压力位附近清仓止损",
+      "reason": "趋势完全破位，避免深套，资金腾挪至强势股"
+    },
+    {
+      "stock_code": "000651.SZ",
+      "stock_name": "格力电器",
+      "action": "逢高减仓",
+      "action_class": "reduce",
+      "price_range": "40.80-41.20元",
+      "current_position": "38.2%",
+      "target_position": "30%",
+      "plan": "分批卖出，降低单票绝对收益影响",
+      "reason": "单票仓位近40%属于风控红线，需被动降权"
+    },
+    {
+      "stock_code": "000423.SZ",
+      "stock_name": "东阿阿胶",
+      "action": "加仓",
+      "action_class": "add",
+      "price_range": "46.50-47.00元",
+      "current_position": "10.1%",
+      "target_position": "12%",
+      "plan": "若惯性下探，利用现有现金补仓200股",
+      "reason": "RSI超卖严重（22），博取短线技术性修复收益"
+    }
+  ],
+  "risk_assessment": {
+    "level": "中等偏高",
+    "level_score": 75,
+    "current_risks": [
+      "行业集中度风险：100%资金集中在泛消费领域，无科技、制造、金融对冲",
+      "个股集中度风险：格力+茅台占比超7成，组合净值完全依赖两只股票表现",
+      "流动性风险：94.8%高仓位运行，缺乏应对市场急跌的现金缓冲"
+    ],
+    "optimization_suggestions": [
+      "做减法：坚决清理走坏的珀莱雅，卖出重叠度高的ETF/LOF基金",
+      "降权重：将格力电器仓位逐步降至25%以下",
+      "增配置：引入半导体或算力ETF增加进攻性，或配置红利低波ETF增加稳定性"
+    ]
+  },
+  "sector_view": {
+    "summary": "当前市场处于存量博弈阶段，资金在'高切低'。消费板块属于'低位但缺乏逻辑'的尴尬区间。",
+    "main_theme": "自主可控（半导体/信创）、高股息红利（电力/银行）",
+    "consumer_position": "消费板块处于估值消化末期，但业绩拐点未现，短期难有超额收益",
+    "portfolio_position": "当前组合完美错过了科技成长主线，且防御性因仓位过重而打折",
+    "adjustment_direction": "保持伊利、阿胶等细分龙头，削减纯防御的家电白酒，尝试配置科技成长"
+  },
+  "target_allocation": {
+    "consumer": 60,
+    "tech_growth": 20,
+    "dividend": 10,
+    "cash": 10
+  }
+}

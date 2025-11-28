@@ -37,8 +37,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-# Include API routers here as they are created
-# from app.api import portfolio, reports, auth
-# app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-# app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
-# app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
+# Include API routers
+from app.api import reports
+
+app.include_router(reports.router, prefix="/api/reports", tags=["reports"])

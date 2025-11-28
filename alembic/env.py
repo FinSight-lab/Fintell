@@ -29,7 +29,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 # Import all models here so alembic can detect them
-# from app.models import user, portfolio, position, report
+from app.models import Portfolio, Position, Report, StockDataCache
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

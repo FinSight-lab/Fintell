@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
-    # Wind API (if needed)
-    WIND_API_KEY: Optional[str] = None
+    # Wind API
+    WIND_API_URL: str = "http://localhost:14268"
     
     model_config = SettingsConfigDict(
         env_file=".env",
