@@ -19,6 +19,7 @@ from app.core.exceptions import (
 from app.services.data_service import DataService
 from app.services.llm_service import LLMService
 from app.services.template_service import TemplateService
+from app.services.notification_service import NotificationService
 from app.models import Report
 
 logger = get_logger(__name__)
@@ -117,10 +118,30 @@ async def generate_weekly_report(
                 logger.error(f"   ⚠️ 保存到数据库失败: {e}")
                 db.rollback()
         
-        # 推送（暂时跳过）
+        # 推送到微信
         pushed = False
-        if not skip_push:
-            logger.info("   ⏭️ 推送功能尚未实现，跳过")
+        if not skip_push and settings.SERVERCHAN_KEY:
+            try:
+                logger.info("   📱 正在推送到微信...")
+                notification_service = NotificationService(settings.SERVERCHAN_KEY)
+                pushed = notification_service.send_weekly_report(
+                    html_content=html,
+                    report_date=datetime.now()
+                )
+                
+                # 更新数据库中的推送状态
+                if pushed and report_id:
+                    try:
+                        report.pushed = True
+                        db.commit()
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"   ⚠️ 推送失败: {e}")
+        elif skip_push:
+            logger.info("   ⏭️ 跳过推送（skip_push=True）")
+        else:
+            logger.warning("   ⚠️ 未配置 SERVERCHAN_KEY，跳过推送")
         
         # 完成
         progress.complete(
@@ -259,5 +280,75 @@ async def get_report(
         logger.error(f"✗ 获取周报失败: {e}")
         raise HTTPException(status_code=500, detail={
             "error_code": "DATABASE_ERROR",
+            "message": str(e)
+        })
+
+
+@router.post("/{report_id}/push")
+async def push_report(
+    report_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    推送指定周报到微信
+    
+    用于重新推送已生成的周报
+    """
+    try:
+        logger.info(f"📱 推送周报: ID={report_id}")
+        
+        # 获取周报
+        report = db.query(Report).filter(Report.id == report_id).first()
+        
+        if not report:
+            raise HTTPException(status_code=404, detail={
+                "error_code": "REPORT_NOT_FOUND",
+                "message": f"周报不存在: ID={report_id}"
+            })
+        
+        if not report.html_content:
+            raise HTTPException(status_code=400, detail={
+                "error_code": "NO_CONTENT",
+                "message": "周报内容为空，无法推送"
+            })
+        
+        # 检查 ServerChan 配置
+        if not settings.SERVERCHAN_KEY:
+            raise HTTPException(status_code=400, detail={
+                "error_code": "NOT_CONFIGURED",
+                "message": "未配置 SERVERCHAN_KEY，无法推送"
+            })
+        
+        # 推送
+        notification_service = NotificationService(settings.SERVERCHAN_KEY)
+        pushed = notification_service.send_weekly_report(
+            html_content=report.html_content,
+            report_date=report.report_date
+        )
+        
+        if pushed:
+            # 更新推送状态
+            report.pushed = True
+            db.commit()
+            
+            logger.info(f"✓ 周报推送成功: ID={report_id}")
+            
+            return {
+                "success": True,
+                "message": "推送成功",
+                "report_id": report_id
+            }
+        else:
+            raise HTTPException(status_code=500, detail={
+                "error_code": "PUSH_FAILED",
+                "message": "推送失败，请检查日志"
+            })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"✗ 推送周报失败: {e}")
+        raise HTTPException(status_code=500, detail={
+            "error_code": "PUSH_ERROR",
             "message": str(e)
         })

@@ -180,9 +180,9 @@ class WindService:
             logger.error(f"✗ 获取最新价格异常: {stock_code} - {e}")
             return None
     
-    def get_technical_indicators(self, stock_code: str, days: int = 90) -> Dict:
+    def get_technical_indicators_from_wind(self, stock_code: str, days: int = 90) -> Dict:
         """
-        获取技术指标（使用 Wind API 直接计算）
+        从 Wind API 获取技术指标（备用方法）
         
         Args:
             stock_code: 股票代码
@@ -195,7 +195,7 @@ class WindService:
             end_date = datetime.today().strftime("%Y-%m-%d")
             start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
             
-            logger.debug(f"获取技术指标: {stock_code}")
+            logger.debug(f"从 Wind API 获取技术指标: {stock_code}")
             
             indicators = {}
             
@@ -204,7 +204,7 @@ class WindService:
                 try:
                     r = w.wsd(stock_code, "MA", start_date, end_date, f"MA_N={n}")
                     if r.ErrorCode == 0 and r.Data and len(r.Data[0]) > 0:
-                        indicators[f"MA{n}"] = r.Data[0][-1]  # 最新值
+                        indicators[f"MA{n}"] = r.Data[0][-1]
                     else:
                         indicators[f"MA{n}"] = None
                 except:
@@ -221,46 +221,78 @@ class WindService:
                 except:
                     indicators[f"RSI{n}"] = None
             
-            # MACD 指标
-            try:
-                r = w.wsd(stock_code, "MACD", start_date, end_date, "MACD_L=26;MACD_S=12;MACD_N=9;MACD_IO=1")
-                if r.ErrorCode == 0 and r.Data and len(r.Data) >= 3:
-                    indicators["MACD_DIF"] = r.Data[0][-1] if len(r.Data[0]) > 0 else None  # DIF
-                    indicators["MACD_DEA"] = r.Data[1][-1] if len(r.Data[1]) > 0 else None  # DEA
-                    indicators["MACD"] = r.Data[2][-1] if len(r.Data[2]) > 0 else None      # MACD
-                else:
-                    indicators["MACD_DIF"] = None
-                    indicators["MACD_DEA"] = None
-                    indicators["MACD"] = None
-            except:
-                indicators["MACD_DIF"] = None
-                indicators["MACD_DEA"] = None
-                indicators["MACD"] = None
+            # MACD 和 BOLL 从 Wind API 获取不稳定，设为 None
+            indicators["MACD_DIF"] = None
+            indicators["MACD_DEA"] = None
+            indicators["MACD"] = None
+            indicators["BOLL_upper"] = None
+            indicators["BOLL_mid"] = None
+            indicators["BOLL_lower"] = None
             
-            # BOLL 指标
-            try:
-                r = w.wsd(stock_code, "BOLL", start_date, end_date, "BOLL_N=20;BOLL_Width=2;BOLL_IO=1")
-                if r.ErrorCode == 0 and r.Data and len(r.Data) >= 3:
-                    indicators["BOLL_upper"] = r.Data[0][-1] if len(r.Data[0]) > 0 else None  # 上轨
-                    indicators["BOLL_mid"] = r.Data[1][-1] if len(r.Data[1]) > 0 else None    # 中轨
-                    indicators["BOLL_lower"] = r.Data[2][-1] if len(r.Data[2]) > 0 else None  # 下轨
-                else:
-                    indicators["BOLL_upper"] = None
-                    indicators["BOLL_mid"] = None
-                    indicators["BOLL_lower"] = None
-            except:
-                indicators["BOLL_upper"] = None
-                indicators["BOLL_mid"] = None
-                indicators["BOLL_lower"] = None
-            
-            # 统计成功获取的指标数量
-            valid_count = sum(1 for v in indicators.values() if v is not None)
-            logger.debug(f"✓ {stock_code}: 技术指标获取完成 ({valid_count}/{len(indicators)} 有效)")
             return indicators
         
         except Exception as e:
-            logger.error(f"✗ 获取技术指标失败: {stock_code} - {e}")
+            logger.error(f"✗ 从 Wind API 获取技术指标失败: {stock_code} - {e}")
             return {}
+    
+    def calculate_technical_indicators(self, close_series: pd.Series) -> Dict:
+        """
+        本地计算技术指标（更可靠）
+        
+        Args:
+            close_series: 收盘价序列
+            
+        Returns:
+            Dict: 包含所有技术指标
+        """
+        from app.services.indicators import calc_ma, calc_rsi, calc_macd, calc_boll
+        
+        indicators = {}
+        
+        try:
+            # MA 指标
+            indicators.update(calc_ma(close_series))
+            
+            # RSI 指标
+            indicators.update(calc_rsi(close_series))
+            
+            # MACD 指标
+            indicators.update(calc_macd(close_series))
+            
+            # BOLL 指标
+            indicators.update(calc_boll(close_series))
+            
+            return indicators
+        except Exception as e:
+            logger.error(f"✗ 本地计算技术指标失败: {e}")
+            return indicators
+    
+    def get_technical_indicators(self, stock_code: str, days: int = 90, close_series: pd.Series = None) -> Dict:
+        """
+        获取技术指标（优先使用本地计算，更可靠）
+        
+        Args:
+            stock_code: 股票代码
+            days: 获取最近多少天的数据
+            close_series: 收盘价序列（如果提供则使用本地计算）
+            
+        Returns:
+            Dict: 包含所有技术指标
+        """
+        logger.debug(f"获取技术指标: {stock_code}")
+        
+        # 如果提供了收盘价序列，使用本地计算
+        if close_series is not None and len(close_series) > 0:
+            indicators = self.calculate_technical_indicators(close_series)
+            valid_count = sum(1 for v in indicators.values() if v is not None)
+            logger.debug(f"✓ {stock_code}: 本地计算技术指标完成 ({valid_count}/{len(indicators)} 有效)")
+            return indicators
+        
+        # 否则从 Wind API 获取（MA 和 RSI 较可靠）
+        indicators = self.get_technical_indicators_from_wind(stock_code, days)
+        valid_count = sum(1 for v in indicators.values() if v is not None)
+        logger.debug(f"✓ {stock_code}: Wind API 技术指标获取完成 ({valid_count}/{len(indicators)} 有效)")
+        return indicators
     
     def get_stock_complete_data(self, stock_code: str, days: int = 90) -> Dict:
         """
@@ -300,8 +332,9 @@ class WindService:
         pe_ttm = df["PE_TTM"].iloc[-1] if "PE_TTM" in df else None
         turnover = df["TURN"].iloc[-1] if "TURN" in df else None
         
-        # 获取技术指标
-        indicators = self.get_technical_indicators(stock_code, days)
+        # 获取技术指标（使用本地计算，传入收盘价序列）
+        close_series = df["CLOSE"] if "CLOSE" in df else None
+        indicators = self.get_technical_indicators(stock_code, days, close_series)
         
         result = {
             "stock_code": stock_code,

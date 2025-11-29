@@ -261,10 +261,14 @@ smart-portfolio-manager/
     - 添加关键步骤的进度提示
     - _需求: 所有需求_
 
-- [ ] 7. 实现推送服务
+- [x] 7. 实现推送服务
 
 
-  - [ ] 7.1 实现 ServerChan 推送
+
+
+  - [x] 7.1 实现 ServerChan 推送
+
+
 
 
 
@@ -277,7 +281,9 @@ smart-portfolio-manager/
     - _需求: 3.6, 8.1_
     - _参考: vx_notice_push.py 的 push_wechat 函数_
   
-  - [ ] 7.2 集成推送到周报 API
+  - [x] 7.2 集成推送到周报 API
+
+
     - 在 POST /api/reports/weekly 接口中添加推送功能
     - 添加 skip_push 参数控制是否推送
     - 验证微信推送成功

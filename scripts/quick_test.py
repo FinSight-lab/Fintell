@@ -1,37 +1,36 @@
-"""快速测试脚本"""
+"""快速测试技术指标"""
 import sys
-import os
 sys.path.insert(0, '.')
 
-from dotenv import load_dotenv
-load_dotenv()
+import pandas as pd
+from app.services.indicators import calc_ma, calc_rsi, calc_macd, calc_boll
 
-print("1. 检查环境变量...")
-api_key = os.getenv('GEMINI_API_KEY')
-print(f"   API Key: {'已设置' if api_key else '未设置'}")
+# 创建测试数据
+s = pd.Series([i for i in range(1, 100)])
 
-print("\n2. 检查测试数据...")
-import json
-try:
-    with open('test_data_output.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    print(f"   持仓数量: {len(data.get('holdings', []))}")
-except Exception as e:
-    print(f"   错误: {e}")
+print("=" * 50)
+print("技术指标计算测试")
+print("=" * 50)
 
-print("\n3. 测试模板服务...")
-try:
-    from app.services.template_service import TemplateService
-    ts = TemplateService()
-    print("   模板服务初始化成功")
-except Exception as e:
-    print(f"   错误: {e}")
+print("\nMA 指标:")
+ma = calc_ma(s)
+for k, v in ma.items():
+    print(f"  {k}: {v}")
 
-print("\n4. 测试 LLM 服务...")
-try:
-    from app.services.llm_service import LLMService
-    print("   LLM 服务导入成功")
-except Exception as e:
-    print(f"   错误: {e}")
+print("\nRSI 指标:")
+rsi = calc_rsi(s)
+for k, v in rsi.items():
+    print(f"  {k}: {v}")
 
-print("\n测试完成!")
+print("\nMACD 指标:")
+macd = calc_macd(s)
+for k, v in macd.items():
+    print(f"  {k}: {v}")
+
+print("\nBOLL 指标:")
+boll = calc_boll(s)
+for k, v in boll.items():
+    print(f"  {k}: {v}")
+
+print("\n" + "=" * 50)
+print("测试完成")
