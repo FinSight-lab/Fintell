@@ -2,9 +2,10 @@
 
 import pandas as pd
 from typing import Dict, Optional
-import logging
 
-logger = logging.getLogger(__name__)
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def calc_ma(series: pd.Series, windows: list = None) -> Dict[str, Optional[float]]:

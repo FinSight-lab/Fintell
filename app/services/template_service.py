@@ -1,11 +1,13 @@
 """Template Service - Jinja2 模板渲染服务"""
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateNotFound
 from typing import Dict
 from pathlib import Path
-import logging
 
-logger = logging.getLogger(__name__)
+from app.core.logging import get_logger
+from app.core.exceptions import TemplateRenderError
+
+logger = get_logger(__name__)
 
 
 class TemplateService:
@@ -57,23 +59,30 @@ class TemplateService:
                 
         Returns:
             str: 渲染后的 HTML 字符串
+            
+        Raises:
+            TemplateRenderError: 模板渲染失败
         """
+        template_name = 'weekly_report.html'
         try:
-            logger.info("开始渲染周报 HTML...")
+            logger.info("🎨 开始渲染周报 HTML...")
             
             # 加载模板
-            template = self.env.get_template('weekly_report.html')
+            template = self.env.get_template(template_name)
             
             # 渲染模板
             html = template.render(**data)
             
-            logger.info(f"✓ 周报 HTML 渲染成功，长度: {len(html)} 字符")
+            logger.info(f"   ✓ HTML 渲染成功，长度: {len(html)} 字符")
             
             return html
         
+        except TemplateNotFound:
+            logger.error(f"   ✗ 模板文件不存在: {template_name}")
+            raise TemplateRenderError(template_name, "模板文件不存在")
         except Exception as e:
-            logger.error(f"渲染周报 HTML 失败: {e}", exc_info=True)
-            return ""
+            logger.error(f"   ✗ 渲染失败: {e}", exc_info=True)
+            raise TemplateRenderError(template_name, str(e))
     
     def save_html(self, html: str, output_path: str) -> bool:
         """

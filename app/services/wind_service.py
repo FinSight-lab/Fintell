@@ -1,25 +1,66 @@
 """Wind API Service - 封装 Wind 数据接口"""
 
 import pandas as pd
-import logging
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+
 from wind_linker import w
 
-logger = logging.getLogger(__name__)
+from app.core.logging import get_logger
+from app.core.exceptions import (
+    WindAPIError, 
+    WindConnectionError, 
+    WindDataError
+)
+
+logger = get_logger(__name__)
+
+# Wind API 错误码映射
+WIND_ERROR_CODES = {
+    -40520007: "数据不存在",
+    -40521001: "无权限访问",
+    -40521002: "超出数据范围",
+    -40522001: "参数错误",
+    0: "成功"
+}
 
 
 class WindService:
     """Wind API 客户端服务"""
     
+    # 重试配置
+    MAX_RETRIES = 3
+    RETRY_DELAY = 1  # 秒
+    
     def __init__(self):
         """初始化 Wind 连接"""
         try:
             # wind-linker 会自动连接，不需要显式 start
-            logger.info("✓ Wind API 初始化成功")
+            logger.info("✓ Wind API 服务初始化成功")
         except Exception as e:
             logger.error(f"✗ Wind API 初始化失败: {e}")
-            raise
+            raise WindConnectionError(str(e))
+    
+    def _get_error_message(self, error_code: int) -> str:
+        """获取错误码对应的消息"""
+        return WIND_ERROR_CODES.get(error_code, f"未知错误 (代码: {error_code})")
+    
+    def _retry_on_failure(self, func, *args, **kwargs):
+        """带重试的函数调用"""
+        last_error = None
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                if attempt < self.MAX_RETRIES - 1:
+                    wait_time = self.RETRY_DELAY * (2 ** attempt)  # 指数退避
+                    logger.warning(f"⚠️  第 {attempt + 1} 次尝试失败，{wait_time}秒后重试...")
+                    time.sleep(wait_time)
+        
+        logger.error(f"✗ 已达到最大重试次数 ({self.MAX_RETRIES})")
+        raise last_error
     
     @staticmethod
     def wind_to_df(res) -> pd.DataFrame:
@@ -48,22 +89,23 @@ class WindService:
             Dict: 包含股票名称等基本信息
         """
         try:
-            logger.info(f"获取股票信息: {stock_code}")
+            logger.debug(f"获取股票信息: {stock_code}")
             res = w.wss(stock_code, "sec_name", "")
             
             if res.ErrorCode != 0:
-                logger.error(f"获取股票信息失败: {stock_code}, 错误码: {res.ErrorCode}")
+                error_msg = self._get_error_message(res.ErrorCode)
+                logger.warning(f"⚠️  获取股票信息失败: {stock_code} - {error_msg}")
                 return {"stock_code": stock_code, "name": None}
             
             name = res.Data[0][0] if res.Data and res.Data[0] else None
-            logger.info(f"✓ {stock_code}: {name}")
+            logger.debug(f"✓ {stock_code}: {name}")
             
             return {
                 "stock_code": stock_code,
                 "name": name
             }
         except Exception as e:
-            logger.error(f"获取股票信息异常: {stock_code}, {e}")
+            logger.error(f"✗ 获取股票信息异常: {stock_code} - {e}")
             return {"stock_code": stock_code, "name": None}
     
     def get_stock_data(
@@ -87,7 +129,7 @@ class WindService:
             end_date = datetime.today().strftime("%Y-%m-%d")
             start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
             
-            logger.info(f"获取行情数据: {stock_code} ({start_date} ~ {end_date})")
+            logger.debug(f"获取行情数据: {stock_code} ({start_date} ~ {end_date})")
             
             res = w.wsd(
                 stock_code,
@@ -98,15 +140,16 @@ class WindService:
             )
             
             if res.ErrorCode != 0:
-                logger.error(f"获取行情数据失败: {stock_code}, 错误码: {res.ErrorCode}")
+                error_msg = self._get_error_message(res.ErrorCode)
+                logger.warning(f"⚠️  获取行情数据失败: {stock_code} - {error_msg}")
                 return pd.DataFrame()
             
             df = self.wind_to_df(res)
-            logger.info(f"✓ 获取 {len(df)} 条行情数据")
+            logger.debug(f"✓ {stock_code}: 获取 {len(df)} 条行情数据")
             
             return df
         except Exception as e:
-            logger.error(f"获取行情数据异常: {stock_code}, {e}")
+            logger.error(f"✗ 获取行情数据异常: {stock_code} - {e}")
             return pd.DataFrame()
     
     def get_latest_price(self, stock_code: str) -> Optional[float]:
@@ -120,20 +163,21 @@ class WindService:
             float: 最新价格，失败返回 None
         """
         try:
-            logger.info(f"获取最新价格: {stock_code}")
+            logger.debug(f"获取最新价格: {stock_code}")
             
             res = w.wsq(stock_code, "rt_last")
             
             if res.ErrorCode != 0:
-                logger.error(f"获取最新价格失败: {stock_code}, 错误码: {res.ErrorCode}")
+                error_msg = self._get_error_message(res.ErrorCode)
+                logger.warning(f"⚠️  获取最新价格失败: {stock_code} - {error_msg}")
                 return None
             
             price = res.Data[0][0] if res.Data and res.Data[0] else None
-            logger.info(f"✓ {stock_code}: ¥{price}")
+            logger.debug(f"✓ {stock_code}: ¥{price}")
             
             return price
         except Exception as e:
-            logger.error(f"获取最新价格异常: {stock_code}, {e}")
+            logger.error(f"✗ 获取最新价格异常: {stock_code} - {e}")
             return None
     
     def get_technical_indicators(self, stock_code: str, days: int = 90) -> Dict:
@@ -151,7 +195,7 @@ class WindService:
             end_date = datetime.today().strftime("%Y-%m-%d")
             start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
             
-            logger.info(f"获取技术指标: {stock_code}")
+            logger.debug(f"获取技术指标: {stock_code}")
             
             indicators = {}
             
@@ -209,11 +253,13 @@ class WindService:
                 indicators["BOLL_mid"] = None
                 indicators["BOLL_lower"] = None
             
-            logger.info(f"✓ 技术指标获取成功")
+            # 统计成功获取的指标数量
+            valid_count = sum(1 for v in indicators.values() if v is not None)
+            logger.debug(f"✓ {stock_code}: 技术指标获取完成 ({valid_count}/{len(indicators)} 有效)")
             return indicators
         
         except Exception as e:
-            logger.error(f"获取技术指标失败: {stock_code}, {e}")
+            logger.error(f"✗ 获取技术指标失败: {stock_code} - {e}")
             return {}
     
     def get_stock_complete_data(self, stock_code: str, days: int = 90) -> Dict:
@@ -227,9 +273,7 @@ class WindService:
         Returns:
             Dict: 包含基本信息、历史行情和技术指标的完整数据
         """
-        logger.info(f"=" * 60)
-        logger.info(f"获取完整数据: {stock_code}")
-        logger.info(f"=" * 60)
+        logger.info(f"📈 获取完整数据: {stock_code}")
         
         # 获取基本信息
         info = self.get_stock_info(stock_code)
@@ -270,11 +314,7 @@ class WindService:
             "indicators": indicators
         }
         
-        logger.info(f"✓ 完整数据获取成功")
-        logger.info(f"  - 股票名称: {result['name']}")
-        logger.info(f"  - 最新价格: ¥{latest_price}")
-        logger.info(f"  - 数据条数: {len(df)}")
-        logger.info(f"  - 技术指标: {len(indicators)} 个")
+        logger.info(f"   ✓ {result['name'] or stock_code}: ¥{latest_price:.2f}, {len(df)}条数据, {len(indicators)}个指标")
         
         return result
     

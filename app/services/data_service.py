@@ -2,13 +2,18 @@
 
 from typing import Dict, List
 from datetime import datetime, timedelta
-import logging
 from sqlalchemy.orm import Session
 
+from app.core.logging import get_logger, ProgressTracker
+from app.core.exceptions import (
+    PortfolioNotFoundError,
+    EmptyPortfolioError,
+    DataError
+)
 from app.services.wind_service import WindService
 from app.services.portfolio_service import PortfolioService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DataService:
@@ -34,40 +39,48 @@ class DataService:
             
         Returns:
             Dict: 包含所有周报所需数据的字典
+            
+        Raises:
+            PortfolioNotFoundError: 持仓组合不存在
+            EmptyPortfolioError: 持仓组合为空
         """
-        logger.info("=" * 80)
-        logger.info(f"开始获取周报数据 (Portfolio ID: {portfolio_id})")
-        logger.info("=" * 80)
+        # 创建进度跟踪器
+        progress = ProgressTracker(logger, total_steps=4, task_name="周报数据获取")
+        progress.start()
         
         try:
-            # 1. 获取持仓组合信息
+            # 步骤 1: 获取持仓组合信息
+            progress.step("获取持仓组合信息")
             portfolio = self.portfolio_service.get_portfolio(portfolio_id)
             if not portfolio:
-                logger.error(f"持仓组合不存在: ID={portfolio_id}")
-                return {}
+                raise PortfolioNotFoundError(portfolio_id)
             
-            # 2. 获取持仓列表
+            # 步骤 2: 获取持仓列表
+            progress.step("获取持仓列表")
             positions = self.portfolio_service.get_positions(portfolio_id)
             if not positions:
-                logger.warning("持仓列表为空")
-                return {}
+                raise EmptyPortfolioError(portfolio_id)
             
-            logger.info(f"\n📊 持仓组合: {portfolio.name}")
-            logger.info(f"   总资产: ¥{portfolio.total_assets:,.2f}")
-            logger.info(f"   持仓数量: {len(positions)} 只股票\n")
+            logger.info(f"   📊 持仓组合: {portfolio.name}")
+            logger.info(f"   💰 总资产: ¥{portfolio.total_assets:,.2f}")
+            logger.info(f"   📋 持仓数量: {len(positions)} 只股票")
             
-            # 3. 获取每只股票的完整数据
+            # 步骤 3: 获取每只股票的完整数据
+            progress.step("获取股票行情和技术指标")
             holdings_data = []
+            success_count = 0
+            fail_count = 0
             
             for i, position in enumerate(positions, 1):
-                logger.info(f"[{i}/{len(positions)}] 处理: {position.stock_code}")
+                progress.sub_progress(i, len(positions), position.stock_code)
                 
                 try:
                     # 获取 Wind 数据
                     wind_data = self.wind_service.get_stock_complete_data(position.stock_code)
                     
                     if not wind_data or wind_data.get("data") is None:
-                        logger.warning(f"  ⚠️  跳过 {position.stock_code}（无数据）")
+                        logger.warning(f"   ⚠️  跳过 {position.stock_code}（无数据）")
+                        fail_count += 1
                         continue
                     
                     # 提取数据
@@ -113,20 +126,23 @@ class DataService:
                     }
                     
                     holdings_data.append(holding_data)
-                    
-                    logger.info(f"  ✓ {position.stock_code}: ¥{current_price:.2f}, "
-                              f"盈亏 {position_metrics['profit_loss']:+,.2f} "
-                              f"({position_metrics['profit_loss_pct']:+.2f}%)")
+                    success_count += 1
                 
                 except Exception as e:
-                    logger.error(f"  ✗ 处理 {position.stock_code} 失败: {e}")
+                    logger.error(f"   ✗ 处理 {position.stock_code} 失败: {e}")
+                    fail_count += 1
                     continue
             
-            if not holdings_data:
-                logger.error("没有成功获取任何股票数据")
-                return {}
+            logger.info(f"   📊 数据获取完成: 成功 {success_count}, 失败 {fail_count}")
             
-            # 4. 计算组合级别指标
+            if not holdings_data:
+                raise DataError(
+                    message="没有成功获取任何股票数据",
+                    error_code="NO_STOCK_DATA"
+                )
+            
+            # 步骤 4: 计算组合级别指标
+            progress.step("计算组合指标")
             portfolio_metrics = self.portfolio_service.calculate_portfolio_metrics(
                 portfolio_id, 
                 holdings_data
@@ -177,20 +193,26 @@ class DataService:
                 "holdings": holdings_data
             }
             
-            logger.info("\n" + "=" * 80)
-            logger.info("✓ 周报数据获取完成")
-            logger.info("=" * 80)
-            logger.info(f"持仓数量: {len(holdings_data)}")
-            logger.info(f"总市值: ¥{portfolio_metrics['total_market_value']:,.2f}")
-            logger.info(f"总盈亏: ¥{portfolio_metrics['total_profit_loss']:+,.2f} ({portfolio_metrics['total_return_pct']:+.2f}%)")
-            logger.info(f"仓位占比: {portfolio_metrics['position_ratio']:.1f}%")
-            logger.info("=" * 80 + "\n")
+            # 完成
+            summary = (
+                f"持仓 {len(holdings_data)} 只, "
+                f"总市值 ¥{portfolio_metrics['total_market_value']:,.2f}, "
+                f"盈亏 {portfolio_metrics['total_return_pct']:+.2f}%"
+            )
+            progress.complete(success=True, message=summary)
             
             return complete_data
         
+        except (PortfolioNotFoundError, EmptyPortfolioError, DataError) as e:
+            progress.complete(success=False, message=str(e))
+            raise
         except Exception as e:
+            progress.complete(success=False, message=str(e))
             logger.error(f"获取周报数据失败: {e}", exc_info=True)
-            return {}
+            raise DataError(
+                message=f"获取周报数据失败: {str(e)}",
+                error_code="DATA_FETCH_ERROR"
+            )
     
     def close(self):
         """关闭服务"""

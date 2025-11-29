@@ -5,10 +5,14 @@ LLM Service - 基于 Gemini API 的周报分析服务
 
 import requests
 import json
-import logging
+import time
+import re
 from typing import Dict, Any, Optional
 
-logger = logging.getLogger(__name__)
+from app.core.logging import get_logger
+from app.core.exceptions import LLMAPIError, LLMResponseParseError
+
+logger = get_logger(__name__)
 
 
 class LLMService:
@@ -51,21 +55,30 @@ class LLMService:
                 - target_allocation   下周目标仓位结构
         """
         try:
+            logger.info("🤖 开始生成周报分析...")
+            logger.info(f"   模型: {self.model}")
+            logger.info(f"   持仓数量: {len(report_data.get('holdings', []))}")
+            
             system_prompt = self._build_system_prompt()
             user_prompt = self._build_user_prompt(report_data)
 
             response = self._call_api(system_prompt, user_prompt, stream_callback=stream_callback)
 
             if response:
-                logger.info("✓ LLM 周报分析内容生成成功")
+                # 统计分析结果
+                stock_count = len(response.get("stock_analysis", []))
+                action_count = len(response.get("action_plan", []))
+                logger.info(f"✓ LLM 分析完成: {stock_count} 只股票分析, {action_count} 条调仓建议")
                 return response
             else:
                 logger.error("✗ LLM 返回空结果")
-                return None
+                raise LLMResponseParseError("LLM 返回空结果")
 
+        except LLMAPIError:
+            raise
         except Exception as e:
-            logger.error(f"生成周报分析内容失败: {e}", exc_info=True)
-            return None
+            logger.error(f"✗ 生成周报分析失败: {e}", exc_info=True)
+            raise LLMAPIError(str(e))
 
     # --------------------------------------------------------------------- #
     # 提示词：系统角色定义 + JSON 输出结构
@@ -326,8 +339,6 @@ class LLMService:
         Returns:
             解析后的 JSON 响应（字典）
         """
-        import time
-        import re
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -353,10 +364,10 @@ class LLMService:
             try:
                 if attempt > 0:
                     wait_time = 2 ** attempt
-                    logger.info(f"⏳ 等待 {wait_time} 秒后重试...")
+                    logger.warning(f"⏳ 第 {attempt} 次重试，等待 {wait_time} 秒...")
                     time.sleep(wait_time)
 
-                logger.info(f"🤖 调用大模型生成周报分析... (尝试 {attempt + 1}/{max_retries})")
+                logger.info(f"   📡 调用 LLM API... (尝试 {attempt + 1}/{max_retries})")
 
                 response = requests.post(
                     self.api_url,
@@ -396,18 +407,18 @@ class LLMService:
                             if stream_callback:
                                 stream_callback(content_chunk, len(full_content))
 
-                            if len(full_content) - last_log_length >= 200:
-                                logger.info(f"📝 大模型已生成约 {len(full_content)} 字...")
+                            if len(full_content) - last_log_length >= 500:
+                                logger.debug(f"   📝 已生成约 {len(full_content)} 字...")
                                 last_log_length = len(full_content)
 
                     except json.JSONDecodeError:
                         continue
 
-                logger.info(f"✓ 大模型输出结束，总长度 {len(full_content)} 字")
+                logger.info(f"   ✓ LLM 输出完成，总长度 {len(full_content)} 字")
 
                 if not full_content:
-                    logger.error("✗ API 返回内容为空")
-                    return None
+                    logger.error("   ✗ API 返回内容为空")
+                    raise LLMResponseParseError("API 返回内容为空")
 
                 original_content = full_content
 
@@ -416,7 +427,7 @@ class LLMService:
                     think_end = full_content.find("</think>")
                     if think_end != -1:
                         full_content = full_content[think_end + len("</think>") :].strip()
-                        logger.info(f"✓ 已剥离思考内容，剩余 {len(full_content)} 字")
+                        logger.debug(f"   已剥离思考内容，剩余 {len(full_content)} 字")
 
                 # 2. 若包在 ```json 代码块中，先截取
                 if "```json" in full_content:
@@ -424,27 +435,27 @@ class LLMService:
                     end = full_content.find("```", start)
                     if end != -1:
                         full_content = full_content[start:end].strip()
-                        logger.info("✓ 从 ```json 代码块中提取内容")
+                        logger.debug("   从 ```json 代码块中提取内容")
                 elif "```" in full_content:
                     start = full_content.find("```") + len("```")
                     end = full_content.find("```", start)
                     if end != -1:
                         full_content = full_content[start:end].strip()
-                        logger.info("✓ 从 ``` 代码块中提取内容")
+                        logger.debug("   从 ``` 代码块中提取内容")
 
                 # 3. 如果前面有多余文字，尝试找到第一个 JSON 起始位置
                 if "{" in full_content and not full_content.lstrip().startswith("{"):
                     json_start = full_content.find("{")
                     full_content = full_content[json_start:]
-                    logger.info("✓ 已截断到第一个 '{{' 开始的位置")
+                    logger.debug("   已截断到第一个 '{{' 开始的位置")
 
                 # 4. 先尝试直接解析
                 try:
                     parsed = json.loads(full_content)
-                    logger.info("✓ 直接解析 JSON 成功")
+                    logger.debug("   ✓ JSON 解析成功")
                     return parsed
                 except json.JSONDecodeError:
-                    logger.warning("⚠️ 直接解析失败，尝试用正则提取最外层 JSON 对象...")
+                    logger.warning("   ⚠️ 直接解析失败，尝试用正则提取...")
 
                     json_pattern = r"\{(?:[^{}]|(?:\{[^{}]*\}))*\}"
                     matches = re.findall(json_pattern, full_content, re.DOTALL)
@@ -455,42 +466,50 @@ class LLMService:
                             if isinstance(parsed, dict) and (
                                 "core_viewpoint" in parsed or "stock_analysis" in parsed
                             ):
-                                logger.info(f"✓ 第 {i+1}/{len(matches)} 个匹配成功解析 JSON")
+                                logger.debug(f"   ✓ 第 {i+1}/{len(matches)} 个匹配解析成功")
                                 return parsed
                         except json.JSONDecodeError:
                             continue
 
-                    logger.error("✗ 无法从返回内容中解析出合法 JSON")
-                    logger.error(f"处理后内容前 500 字：{full_content[:500]}...")
+                    logger.error("   ✗ 无法从返回内容中解析出合法 JSON")
+                    logger.debug(f"   处理后内容前 500 字：{full_content[:500]}...")
 
+                    # 保存错误输出用于调试
                     try:
-                        with open("llm_error_output.txt", "w", encoding="utf-8") as f:
+                        with open("output/llm_error_output.txt", "w", encoding="utf-8") as f:
                             f.write(original_content)
-                        logger.error("原始内容已保存到 llm_error_output.txt")
+                        logger.warning("   原始内容已保存到 output/llm_error_output.txt")
                     except Exception:
                         pass
 
-                    return None
+                    raise LLMResponseParseError("无法解析 LLM 响应为有效 JSON")
 
             except requests.exceptions.HTTPError as e:
                 status = e.response.status_code if e.response is not None else None
                 if status in [429, 500, 502, 503, 504]:
-                    logger.warning(f"⚠️ API HTTP 错误 {status}，将重试...")
+                    logger.warning(f"   ⚠️ API HTTP 错误 {status}，将重试...")
                     if attempt == max_retries - 1:
-                        logger.error("❌ 已达到最大重试次数，放弃请求")
-                        return None
+                        logger.error("   ❌ 已达到最大重试次数")
+                        raise LLMAPIError(f"HTTP 错误 {status}", status_code=status, retry_count=max_retries)
                     continue
                 else:
-                    logger.error(f"API HTTP 错误: {e}")
-                    return None
-            except requests.exceptions.RequestException as e:
-                logger.error(f"API 请求异常: {e}")
+                    logger.error(f"   ✗ API HTTP 错误: {e}")
+                    raise LLMAPIError(str(e), status_code=status)
+            except requests.exceptions.Timeout:
+                logger.warning(f"   ⚠️ API 请求超时，将重试...")
                 if attempt == max_retries - 1:
-                    return None
+                    raise LLMAPIError("请求超时", retry_count=max_retries)
                 continue
+            except requests.exceptions.RequestException as e:
+                logger.error(f"   ✗ API 请求异常: {e}")
+                if attempt == max_retries - 1:
+                    raise LLMAPIError(str(e), retry_count=max_retries)
+                continue
+            except LLMResponseParseError:
+                raise
             except Exception as e:
-                logger.error(f"处理流式输出时发生未知错误: {e}", exc_info=True)
-                return None
+                logger.error(f"   ✗ 未知错误: {e}", exc_info=True)
+                raise LLMAPIError(str(e))
 
-        logger.error("❌ 所有重试尝试均失败")
-        return None
+        logger.error("   ❌ 所有重试尝试均失败")
+        raise LLMAPIError("所有重试尝试均失败", retry_count=max_retries)

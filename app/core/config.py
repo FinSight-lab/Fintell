@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Smart Portfolio Manager"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
     
     # Database
     DB_HOST: str

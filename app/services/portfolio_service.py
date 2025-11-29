@@ -2,12 +2,13 @@
 
 from typing import Dict, List, Optional
 from decimal import Decimal
-import logging
 from sqlalchemy.orm import Session
 
+from app.core.logging import get_logger
+from app.core.exceptions import PortfolioNotFoundError, PositionNotFoundError
 from app.models import Portfolio, Position
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PortfolioService:
@@ -35,12 +36,12 @@ class PortfolioService:
         try:
             portfolio = self.db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
             if portfolio:
-                logger.info(f"✓ 获取持仓组合: {portfolio.name} (ID: {portfolio.id})")
+                logger.debug(f"✓ 获取持仓组合: {portfolio.name} (ID: {portfolio.id})")
             else:
-                logger.warning(f"⚠️  持仓组合不存在: ID={portfolio_id}")
+                logger.warning(f"⚠️ 持仓组合不存在: ID={portfolio_id}")
             return portfolio
         except Exception as e:
-            logger.error(f"获取持仓组合失败: {e}")
+            logger.error(f"✗ 获取持仓组合失败: {e}")
             return None
     
     def get_positions(self, portfolio_id: int) -> List[Position]:
@@ -57,10 +58,10 @@ class PortfolioService:
             positions = self.db.query(Position).filter(
                 Position.portfolio_id == portfolio_id
             ).all()
-            logger.info(f"✓ 获取持仓列表: {len(positions)} 只股票")
+            logger.debug(f"✓ 获取持仓列表: {len(positions)} 只股票")
             return positions
         except Exception as e:
-            logger.error(f"获取持仓列表失败: {e}")
+            logger.error(f"✗ 获取持仓列表失败: {e}")
             return []
     
     def calculate_position_metrics(
@@ -156,15 +157,12 @@ class PortfolioService:
                 "position_count": len(positions_data)
             }
             
-            logger.info(f"✓ 组合指标计算完成:")
-            logger.info(f"  - 总资产: ¥{total_assets:,.2f}")
-            logger.info(f"  - 总市值: ¥{total_market_value:,.2f}")
-            logger.info(f"  - 总盈亏: ¥{total_profit_loss:,.2f} ({total_return_pct:+.2f}%)")
-            logger.info(f"  - 仓位占比: {position_ratio:.1f}%")
+            logger.info(f"   ✓ 组合指标: 总资产 ¥{total_assets:,.2f}, 市值 ¥{total_market_value:,.2f}, "
+                        f"盈亏 {total_return_pct:+.2f}%, 仓位 {position_ratio:.1f}%")
             
             return metrics
         except Exception as e:
-            logger.error(f"计算组合指标失败: {e}")
+            logger.error(f"✗ 计算组合指标失败: {e}")
             return {}
     
     def add_position(
