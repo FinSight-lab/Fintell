@@ -69,3 +69,4 @@ reports/*.html
 
 # OS
 Thumbs.db
+/output

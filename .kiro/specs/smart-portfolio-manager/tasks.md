@@ -211,27 +211,11 @@ smart-portfolio-manager/
     - 生成最终的 HTML 字符串
     - _需求: 4.6_
 
-- [ ] 5. 实现推送服务
-
-
-  - [ ] 5.1 实现 ServerChan 推送
+- [x] 5. 创建周报生成 API 接口
 
 
 
-    - 创建 app/services/notification_service.py
-    - 参考 vx_notice_push.py 实现 ServerChan 推送
-    - 实现 send_serverchan(title, content) 方法
-    - 支持 HTML 格式内容
-    - 添加重试逻辑（3次）
-    - 添加推送日志记录
-    - _需求: 3.6, 8.1_
-    - _参考: vx_notice_push.py 的 push_wechat 函数_
-
-- [x] 6. 创建周报生成 API 接口
-
-
-
-  - [x] 6.1 实现周报生成接口
+  - [x] 5.1 实现周报生成接口
 
 
     - 创建 app/api/reports.py
@@ -243,13 +227,12 @@ smart-portfolio-manager/
       4. 调用 LLM 生成结构化分析（JSON 格式）
       5. 使用 Jinja2 渲染 HTML 模板
       6. 保存周报到数据库
-      7. 推送到微信（可选参数控制）
-      8. 返回生成的 HTML 和推送状态
-    - 添加请求参数：portfolio_id（持仓组合ID）、skip_push（是否跳过推送）、date（指定日期）
+      7. 返回生成的 HTML
+    - 添加请求参数：portfolio_id（持仓组合ID）、date（指定日期）
     - 添加详细的日志输出
     - _需求: 4.1, 4.6, 4.7_
   
-  - [x] 6.2 注册路由并测试
+  - [x] 5.2 注册路由并测试
 
 
     - 在 app/main.py 中注册 reports 路由
@@ -257,21 +240,42 @@ smart-portfolio-manager/
     - 验证完整流程可用
     - _需求: 所有 MVP 需求_
 
-- [ ] 7. 端到端测试和优化
-  - [ ] 7.1 完整流程测试
-    - 使用 stock_position.json 中的真实持仓测试
+- [ ] 6. 端到端测试和优化
+  - [x] 6.1 完整流程测试
+    - 使用数据库中的真实持仓数据测试
     - 验证 Wind API 数据获取正确
     - 验证技术指标计算准确
     - 验证 LLM 输出格式和内容质量
-    - 验证 HTML 渲染效果（在浏览器和微信中查看）
-    - 验证微信推送成功
+    - 验证 HTML 渲染效果（在浏览器中查看）
     - _需求: 所有 MVP 需求_
   
-  - [ ] 7.2 错误处理和日志优化
+  - [ ] 6.2 错误处理和日志优化
     - 添加完善的错误处理
     - 优化日志输出（INFO、WARNING、ERROR 级别）
     - 添加关键步骤的进度提示
     - _需求: 所有需求_
+
+- [ ] 7. 实现推送服务
+
+
+  - [ ] 7.1 实现 ServerChan 推送
+
+
+
+    - 创建 app/services/notification_service.py
+    - 参考 vx_notice_push.py 实现 ServerChan 推送
+    - 实现 send_serverchan(title, content) 方法
+    - 支持 HTML 格式内容
+    - 添加重试逻辑（3次）
+    - 添加推送日志记录
+    - _需求: 3.6, 8.1_
+    - _参考: vx_notice_push.py 的 push_wechat 函数_
+  
+  - [ ] 7.2 集成推送到周报 API
+    - 在 POST /api/reports/weekly 接口中添加推送功能
+    - 添加 skip_push 参数控制是否推送
+    - 验证微信推送成功
+    - _需求: 3.6, 8.1_
 
 ---
 
@@ -289,7 +293,7 @@ smart-portfolio-manager/
 
 ---
 
-- [ ] 8. 搭建前端项目
+- [ ] 8. 搭建前端项目（第二里程碑）
   - [ ] 8.1 初始化 Next.js 项目
     - 创建 frontend/ 目录
     - 使用 create-next-app 初始化项目（TypeScript + Tailwind CSS）
@@ -473,7 +477,7 @@ smart-portfolio-manager/
 ### 成功标准
 - ✅ 调用 POST /api/reports/weekly 接口
 - ✅ 成功获取 Wind 数据并计算技术指标
-- ✅ LLM 生成结构化的周报分析
+- ✅ LLM 生成结构化的周报分析（JSON 格式）
 - ✅ 渲染出美观的 HTML 周报
-- ✅ 成功推送到微信
 - ✅ 整个流程在 2 分钟内完成
+- ⏳ 成功推送到微信（待实现）
