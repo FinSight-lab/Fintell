@@ -16,10 +16,10 @@
             --brand-primary: #0052FF;
             --brand-secondary: #f0f6ff;
 
-            --up-text: #1f7a42;
-            --up-bg: #e9f9ee;
-            --down-text: #c92a2a;
-            --down-bg: #fff5f5;
+            --up-text: #c92a2a;     /* 改为红色 */
+            --up-bg: #fff5f5;       /* 改为红色背景 */
+            --down-text: #1f7a42;   /* 改为绿色 */
+            --down-bg: #e9f9ee;     /* 改为绿色背景 */
             --warn-text: #e8590c;
             --warn-bg: #fff9e8;
             --neutral-text: #495057;
@@ -252,6 +252,7 @@
             font-weight: 700;
             font-size: 14px;
             color: var(--text-main);
+            white-space: nowrap;
         }
 
         .stock-code {
@@ -407,6 +408,21 @@
             padding: 10px 10px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
+        }
+
+        .action-table tbody td.action-col {
+            width: 100px;
+            white-space: nowrap;
+        }
+
+        .action-table tbody td.price-col {
+            width: 120px;
+            white-space: nowrap;
+        }
+        
+        .action-table tbody td.name-col {
+            width: 120px;
+            white-space: nowrap;
         }
 
         .badge-action {
@@ -615,13 +631,6 @@
                     </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">今年以来收益率</div>
-                    <div class="kpi-value font-num">
-                        {{ "%+.2f"|format(analysis.kpis.ytd_return) }}%
-                    </div>
-                    <div class="kpi-sub">{{ analysis.kpis.ytd_comment }}</div>
-                </div>
-                <div class="kpi-card">
                     <div class="kpi-label">当前整体仓位</div>
                     <div class="kpi-value font-num">
                         {{ "%.0f"|format(analysis.kpis.position_ratio) }}%
@@ -648,7 +657,7 @@
                 </div>
 
                 <div class="summary-card">
-                    <div class="summary-card-title">Professional Summary / 专业总结</div>
+                    <div class="summary-card-title"> Summary / 总结</div>
                     <div class="summary-card-text">
                         {{ analysis.core_viewpoint | safe }}
                     </div>
@@ -818,9 +827,9 @@
                         <thead>
                             <tr>
                                 <th>代码</th>
-                                <th class="col-text-left">名称</th>
-                                <th>建议动作</th>
-                                <th>执行价区间</th>
+                                <th class="col-text-left name-col">名称</th>
+                                <th class="action-col">建议动作</th>
+                                <th class="price-col">执行价区间</th>
                                 <th class="font-num">当前仓位</th>
                                 <th class="font-num">目标仓位</th>
                                 <th>分批计划</th>
@@ -843,8 +852,8 @@
                                 <tr>
                                     <td class="font-num">{{ a.stock_code }}</td>
                                     <td class="col-text-left">{{ a.stock_name }}</td>
-                                    <td><span class="{{ badge_class }}">{{ a.action }}</span></td>
-                                    <td class="font-num">{{ a.price_range }}</td>
+                                    <td class="action-col"><span class="{{ badge_class }}">{{ a.action }}</span></td>
+                                    <td class="price-col font-num">{{ a.price_range }}</td>
                                     <td class="font-num">
                                         {{ "%.1f"|format(a.current_position_pct) }}%
                                     </td>
